@@ -4,6 +4,11 @@
 
 Your 'client' also needs Akka-Remoting (see application.conf) and
 the Actor-Interface-Stubs of the docelem-store.
+
+First of all start this microservice with:
+
+    ./activator run
+
 Then you can connect like this:
 
     // Imports
