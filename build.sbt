@@ -8,6 +8,8 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-actor" % "2.3.11",
   "com.typesafe.akka" %% "akka-testkit" % "2.3.11",
   "com.typesafe.akka" %% "akka-remote" % "2.3.11",
+  "org.scala-lang.modules" %% "scala-xml" % "1.0.3",
+  "com.orientechnologies" % "orientdb-graphdb" % "2.1-rc4",
   "org.scalatest" %% "scalatest" % "2.2.4" % "test"
 )
 

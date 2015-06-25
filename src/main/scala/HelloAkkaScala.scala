@@ -14,7 +14,7 @@ class Greeter extends Actor {
   }
 }
 
-object HelloAkkaScala extends App {
+object HelloAkkaScala {// extends App {
 
   // Create the 'helloakka' actor system
   val system = ActorSystem("helloakka")
@@ -45,7 +45,7 @@ object HelloAkkaScala extends App {
   val greetPrinter = system.actorOf(Props[GreetPrinter])
   // after zero seconds, send a Greet message every second to the greeter with a sender of the greetPrinter
   system.scheduler.schedule(0.seconds, 1.second, greeter, Greet)(system.dispatcher, greetPrinter)
-  
+
 }
 
 // prints a greeting

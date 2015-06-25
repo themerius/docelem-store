@@ -16,26 +16,35 @@ object DocElemStore extends App {
   val store = system.actorOf(Props[Store], "store")
   println(store)
 
-  store ! Get2("about-001")
-  store ! Get2("about-002", 11)
+  //store ! Init
 
-  implicit val inbox = Inbox.create(system)
-  inbox.send(store, Get("about-003"))
-  val Response(de) = inbox.receive(5.seconds)
-  println(de)
-
+  val inbox = Inbox.create(system)
   implicit val timeout = Timeout(5.seconds)
 
-  val msg = de(0) ? Projection("Html")
-  println(Await.result(msg, timeout.duration).asInstanceOf[String])
+  // get result of one DocElem
+  time {
+    inbox.send(store, Get("about-002"))
+    val Response(de) = inbox.receive(5.seconds)
+    val msg = de(0) ? Projection("Html")
+    println(Await.result(msg, timeout.duration).asInstanceOf[String])
+  }
 
-  // Test for multiple
-  inbox.send(store, GetFlatTopology("about-003"))
-  val Response(des) = inbox.receive(5.seconds)
-  val msgs = des.view.map(_ ? Projection("PlainText"))
-  val awaited = msgs.map(Await.result(_, timeout.duration).asInstanceOf[String])
-  println(awaited.force)
+  // Get result of multiple DocElems
+  time {
+    inbox.send(store, GetFlatTopology("about-002"))
+    val Response(des) = inbox.receive(5.seconds)
+    val msgs = des.view.map(_ ? Projection("Html"))
+    val awaited = msgs.map(Await.result(_, timeout.duration).asInstanceOf[String])
+    println(awaited.force)
+  }
 
-  //system.shutdown
+  system.shutdown
+
+  def time[A](f: => A) = {
+    val s = System.nanoTime
+    val ret = f
+    println("time: "+(System.nanoTime-s)/1e6+"ms")
+    ret
+  }
 
 }

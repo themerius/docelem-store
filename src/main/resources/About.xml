@@ -1,0 +1,32 @@
+<modd version="0.0.0-SNAPSHOT">
+  <docelems>
+    <docelem>
+      <id>about-001</id>
+      <type>Section</type>
+      <model namespace="freetext">Themerius.eu</model>
+    </docelem>
+    <docelem>
+      <id>about-002</id>
+      <type>Paragraph</type>
+      <model namespace="de.duden" version="25">
+        Willkommen auf meiner Webseite und Wissensressource!
+        Auf dieser Webseite teste ich meine neuste
+        Technologie: <i>Model Driven Documents</i>.
+      </model>
+    </docelem>
+    <docelem>
+      <id>templ-001</id>
+      <type>Template</type>
+      <model namespace="org.w3.xml" version="1.1">
+        <tpl><p><ref>model</ref></p></tpl>
+      </model>
+    </docelem>
+    <docelem>
+      <id>templ-002</id>
+      <type>Template</type>
+      <model namespace="org.w3.xml" version="1.1">
+        <tpl><h1><ref>model</ref></h1></tpl>
+      </model>
+    </docelem>
+  </docelems>
+</modd>
