@@ -45,6 +45,24 @@ object OrientDB extends Database {
     g.commit()
   }
 
+  // uuidA is annotated by uuidB as Annotation.
+  // TODO: add polymorphic method with generic position argument
+  def annotatedWith(uuidA: String, uuidB: String) = {
+    val g = graph
+    val va = g.query.has("uuid", uuidA).vertices.toList(0)
+    val vb = g.query.has("uuid", uuidB).vertices.toList(0)
+    val aAnnotatedB = graph.addEdge(null, va, vb, "annotated_with");
+    g.commit()
+  }
+
+  def hasProvanance(uuidA: String, uuidB: String) = {
+    val g = graph
+    val va = g.query.has("uuid", uuidA).vertices.toList(0)
+    val vb = g.query.has("uuid", uuidB).vertices.toList(0)
+    val aAnnotatedB = graph.addEdge(null, va, vb, "has_provanance");
+    g.commit()
+  }
+
 }
 
 class XMLReader(file: String) {

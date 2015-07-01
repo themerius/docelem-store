@@ -16,26 +16,37 @@ object DocElemStore extends App {
   val store = system.actorOf(Props[Store], "store")
   println(store)
 
-  //store ! Init
+  store ! Init("/MedLineAbstracts10k.xml")
 
   val inbox = Inbox.create(system)
   implicit val timeout = Timeout(5.seconds)
 
   // get result of one DocElem
-  time {
-    inbox.send(store, Get("about-002"))
-    val Response(de) = inbox.receive(5.seconds)
-    val msg = de(0) ? Projection("Html")
-    println(Await.result(msg, timeout.duration).asInstanceOf[String])
-  }
+  // time {
+  //   inbox.send(store, Get("23664431"))
+  //   val Response(de) = inbox.receive(5.seconds)
+  //   val msg = de(0) ? Projection("Html")
+  //   println(Await.result(msg, timeout.duration).asInstanceOf[String])
+  // }
 
   // Get result of multiple DocElems
+  // time {
+  //   inbox.send(store, GetFlatTopology("about-002"))
+  //   val Response(des) = inbox.receive(5.seconds)
+  //   val msgs = des.view.map(_ ? Projection("Html"))
+  //   val awaited = msgs.map(Await.result(_, timeout.duration).asInstanceOf[String])
+  //   println(awaited.force)
+  // }
+
   time {
-    inbox.send(store, GetFlatTopology("about-002"))
-    val Response(des) = inbox.receive(5.seconds)
-    val msgs = des.view.map(_ ? Projection("Html"))
-    val awaited = msgs.map(Await.result(_, timeout.duration).asInstanceOf[String])
-    println(awaited.force)
+    val dep = DocElemPayload("person-001", "Person", "Sven Hodapp")
+    store ! Create(dep :: Nil)
+  }
+
+  time {
+    inbox.send(store, Get("23664431"))
+    val Response(de) = inbox.receive(5.seconds)
+    de(0) ! OfProvenance("person-001")
   }
 
   system.shutdown

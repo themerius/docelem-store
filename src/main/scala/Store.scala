@@ -3,8 +3,9 @@ package eu.themerius.docelemstore
 import akka.actor.{ ActorRef, ActorSystem, Props, Actor, Inbox }
 
 case class Get(uuid: String, version: Int = 0)
+case class Create(dep: Seq[DocElemPayload])
 case class GetFlatTopology(uuid: String)
-case object Init
+case class Init(fileName: String)
 
 case class Response(de: List[ActorRef])
 
@@ -20,7 +21,10 @@ class Store extends Actor {
       val de = context.actorOf( Props(classOf[DocElem], payload) )
       sender ! Response(List(de))
     }
-    // case Create
+    case Create(deps) => {
+      OrientDB.saveDocElemPayloads(deps)
+      // if error send error-response?
+    }
     case GetFlatTopology(uuid) => {
       println(s"Get flat topo for § $uuid.")
       val payload = OrientDB.fetchDocElemPayload(uuid)
@@ -28,9 +32,9 @@ class Store extends Actor {
       val lst = List.fill(10)( context.actorOf(Props(classOf[DocElem], payload)) )  // TODO: getOrCreate
       sender ! Response(lst)
     }
-    case Init => {
+    case Init(fileName) => {
       println("Init Database with some data")
-      val reader = new XMLReader(getClass.getResource("/About.xml").getPath)
+      val reader = new XMLReader(getClass.getResource(fileName).getPath)
       val payloads = reader.getDocElemPayload
       OrientDB.saveDocElemPayloads(payloads)
     }
@@ -39,6 +43,8 @@ class Store extends Actor {
 }
 
 case class Projection(p: String)
+case class AnnotateWith(uuid: String)
+case class OfProvenance(uuid: String)
 
 class DocElem(payload: DocElemPayload) extends Actor {
   def receive = {
@@ -48,6 +54,8 @@ class DocElem(payload: DocElemPayload) extends Actor {
       case "Raw" => sender ! payload.model // isTextModel, isBinaryModel
       case other => sender ! "No Projection found"
     }
+    case AnnotateWith(uuid) => OrientDB.annotatedWith(payload.uuid, uuid)
+    case OfProvenance(uuid) => OrientDB.hasProvanance(payload.uuid, uuid)
     // case Update
     case other => {
       println("Can't handle " + other)
