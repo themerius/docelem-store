@@ -206,8 +206,80 @@ Kanten auf Dokumentelement mit den Eigenschaften:
 
 # Deduplizierung
 
+Grundsätzlich geht es darum, doppelte Importe von Dokumentelementen und
+ggf. von Annotationen zu vermeiden.
+
+Das bedeutet es muss vor dem Import eine ID erzeugt werden,
+welche vom Modell-Inhalt abhängt (HASH).
+
+Beim ersten Erzeugen wird eine zufällige UUID (mit URI) erzeugt,
+als ID für das Dokumentelement.
+
+  1. Man kennt keine UUID, nur das Modell. Es existiert auch noch keine UUID und diese muss erzeugt werden.
+  2. Man kennt die UUID nicht, sondern nur das Modell, welches einer existierenden UUID
+(in einer bestimmten Version) zugeordent werden soll. (Doppelter Batch Import)
+  3. Man kennt die UUID und möchte explizit eine neue Version (des Modells) hinzufügen. (Entspricht EDIT-Operation)
+  4. Man hat ein Modell, welches zwar einer UUID zuordenbar ist,
+möchte dafür aber explizit eine weitere neue UUID zuweisen.
+
+UUID A -> HASH 2 (HEAD) -> HASH 1
+
+HASH 1 -> UUID A
+HASH 2 -> UUID A
+
+HASH 1 -> Modell Version 1
+HASH 2 -> Modell Version 2
+
 # Verteiltes System
-## Synchronisierung
-Man soll den DocElem Store z.B. auf ein Laptop laden können und daran offline arbeiten, wenn der Laptop wieder online ist, kann es sich synchronisieren.
+
+Der DocElem Store soll ein verteilter Dienst sein, der mist möglichst wenig
+Konfigurationsaufwand installierbar sein. Vom kleinen Laptop bis zum Cluster
+bzw. mehrere kleine Laptop können auch ein Cluster bilden.
+
+Zudem ist eine wichtige Eigenschaft, dass man sich den Datenbestand (oder eine Teilmenge davon)
+auf einen Computer als lokale kopie besorgen kann.
+Dann soll damit z.B. offline gearbeitet werden können und bei einem Reconnect
+werden die geänderten Daten übertragen. Konflikte können wie o.g. behandelt werden.
+
 ## Replikation (Master-Master)
-Der DocElem Store sollte als Service (Hintergrundprogramm) konzipiert sein. Jede neue Instanz des Hintergrundprogramms sollte einen weiteren Knoten im Cluster eröffnen / repräsentieren.
+
+Der DocElem Store sollte als Service (Hintergrundprogramm) konzipiert sein.
+Jede neue Instanz des Hintergrundprogramms sollte einen weiteren Knoten im
+Cluster eröffnen / repräsentieren.
+
+    store ! FormCluster(with=remoteStore)
+
+Nach Möglichkeit sollt es so wenig wie möglich Konfliktfläche geben.
+Ein INSERT sollte immer unproblematisch sein, um es zu synchronisieren.
+Die UPDATEs können Probleme verursachen, wenn z.B. zwei Benutzer gleichzeitig
+etwas aktualisieren wollen. Die UPDATES sollten also auch als INSERTS realisert werden!
+
+Das heißt ein Cluster-Knoten führt einen Insert aus und informiert seine Nachbar-Knoten.
+Durch einen HASH ist der Eintrag eindeutig identifizierbar.
+
+    KEY = {HASH, DATETIME-UTC}, MODEL|BLOB, provenance?
+
+Die Nachricht an die Nachbarn könnte so aussehen:
+
+    InsertReplicate(informedNodes, Entry(payload))
+
+Wobei `payload` der Eintrag selbst ist und die `informedNodes` eine Liste
+mit IDs von Knoten die diese Nachricht erhalten haben.
+Jeder Knoten erweitert die Nachricht um seine ID,
+führt das verlangte Insert aus und schickt es wieder weiter an seinen Nachbar.
+Nachbarn die auf der `informedNodes` Liste bereits stehen,
+müssen nicht mehr benachrichtig werden.
+
+## Synchronisierung (Wiederherstellung von Offline)
+
+Man soll den DocElem Store z.B. auf ein Laptop laden können und daran offline arbeiten,
+wenn der Laptop wieder online ist, kann es sich synchronisieren.
+
+Zunächst muss ermittelt werden, welche der neuen Einträge versäumt wurden.
+
+Dazu sollten alle Systeme eine `chrono.log` Datei erstellen,
+dort werden sämtliche Aktionen wie INSERT oder NOW OFFLINE mit DATETIME aufgezeichnet werden.
+
+Jetzt kann der Offline-Knoten herausfinden, ab welchem DATETIME er die Änderungen
+des restlichen Clusters benötigt und welche Änderungen er innerhalb der Offline-Zeit
+an den restlichen Cluster schicken muss.
