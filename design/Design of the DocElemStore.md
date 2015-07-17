@@ -1,4 +1,9 @@
-# Basis API
+# Design of the Documentelement Store
+
+Design of the Documentelement Store as _microservice_,
+current prototype is primary based on _Akka_ and _OrientDB_.
+
+## Basic API
 
 Jede Instanz (z.B. Pipelet, Besucher etc.) erhält ihren eigenen `store`-Aktor.
 
@@ -10,7 +15,7 @@ falls eine spezifische Version angefordert werden soll.
 
     docelem ! Edit(change)
 
-## Templating (Projektionen, Transformatoren, Generatoren)
+#### Templating (Projektionen, Transformatoren, Generatoren)
 
 Das Templating-Modul sollte mittelfristig in einen extra Templating Service
 ausgelagert werden!
@@ -30,7 +35,7 @@ mit welchen Template-Dokumentelementen gerendert werden können.
 Man kann darüber nachdenken, diese Mappings ebenfalls
 als Dokumentelement(e) zu hinterlegen.
 
-## Annotationen
+#### Annotationen
 
 Eine Annotation ist eine Beziehung von zu einem Dokumentelement.
 Jede Annotation hat einen Zweck.
@@ -56,7 +61,7 @@ Beispiele für `query` sind:
   * gib mir alle Annotationen
   * gib mir die ersten 10 Annotationen vom Typ Konzept namespace="HGNC"
 
-## Provenance
+#### Provenance
 
 Provenance Kanten zeigt immer auf einen Urheber (Autoren, Co-Autoren, Programme).
 Der Urheber wird durch ein Dokumentelement repräsentiert,
@@ -75,7 +80,7 @@ Beispiel: DocElem -prov-> creator: Author Name, source: Medline, importer: shoda
 ??? Der Prototyp wird zeigen, ob Provenance nicht sogar als eigener DocElem-Typ modelliert werden sollte.
 Vermutlich ist das sogar sinnvoller!
 
-## Topologie (Korpus)
+#### Topologie (Korpus)
 
 Im Prinzip sind die Topologie-Kanten ebenfalls wieder nur Spezialfälle
 der Annotation.
@@ -115,14 +120,14 @@ Dokument die Topologie angezeigt werden soll.
 Das ist nützlich wenn man z.B. einen Teilausschnitt eines Dokuments
 betrachten will.
 
-### Topologie API
+###### Topologie API
 
     docelem ? GetNextSibling(to=uuid, corpus=uuid_root_elem)
     docelem ? GetFirstChild(to=uuid, corpus=uuid_root_elem)
     docelem ? GetPreviousSibling(to=uuid, corpus=uuid_root_elem)
     docelem ? GetParent(to=uuid, corpus=uuid_root_elem)
 
-# Versionsmanagement
+## Versionsmanagement
 
 TODO: Unterteilen in Model-Versionierung und Annotations-Versionierung!
 
@@ -171,7 +176,7 @@ Eine Alternative zum Branch wäre eine tiefe Kopie -> neues Dokumentelement...
     Pseudo-Query um die aktuellste Version zu erhalten:
     select from Versions where UUID=? and order by RID desc skip 0 limit 1
 
-## Konflikte über Annotationen behandeln
+#### Konflikte über Annotationen behandeln
 
 Wenn Autor und Co-Autoren gleichzeitig am gleichen Dokumentelement arbeiten,
 kann es zu Konflikten kommen.
@@ -191,7 +196,7 @@ Beispiel:
 
 Dieses Prinzip ist  für Batch-Processing gut geeignet.
 
-## Konflikte Live behandeln
+#### Konflikte Live behandeln
 
 Der Modell-Editor des Dokumentelements bringt eine Live-Ansicht mit und übernimmt die Merges.
 Bei Text könnte es so aussehen, dass alle Autoren sich den gleichen Dokumentelement-Aktor
@@ -201,7 +206,7 @@ sofort informiert. Bei Text zeigt Google Docs wie das funktionieren kann.
 
 Dieses Prinzip ist mehr "responsive" und daher eher für den direkten User-Input geeignet.
 
-# Nutzermanagement
+## Nutzermanagement
 
 Die feinst granulierten Rechte kann ich mir bei einem Dokument wie folgt vorstellen:
 
@@ -217,7 +222,7 @@ Die feinst granulierten Rechte kann ich mir bei einem Dokument wie folgt vorstel
 Diese Rechte sollen auf Dokumentelement-Ebene ausgeführt werden.
 Rechte zeigen immer auf eine Gruppe von Personen.
 
-## API
+#### API
 
 Den `token` sollte der Benutzer zuvor von einem speziellen
 Authentification Service besorgen.
@@ -232,7 +237,7 @@ antwortet das Dokumentelement statt z.B. mit dem Inhalt mit "no read permission 
 
     docelem ! ChRights(group, "+e")
 
-## Datenstruktur
+#### Datenstruktur
 
 Es gibt Benutzer-Dokumentelemente, z.B. haben diesen ein vCard-Modell.
 Es gibt Gruppen-Dokumentelemente welche Benutzer annotiert haben.
@@ -247,7 +252,7 @@ Kanten auf Dokumentelement mit den Eigenschaften:
 
 ??? Ist es sinnvoll die Rechte getrennt von den eigentlichen Daten zu halten?
 
-# Deduplizierung
+## Deduplizierung
 
 Grundsätzlich geht es darum, doppelte Importe von Dokumentelementen und
 ggf. von Annotationen zu vermeiden.
@@ -273,7 +278,7 @@ HASH 2 -> UUID A
 HASH 1 -> Modell Version 1
 HASH 2 -> Modell Version 2
 
-# Verteiltes System
+## Verteiltes System
 
 Der DocElem Store soll ein verteilter Dienst sein, der mist möglichst wenig
 Konfigurationsaufwand installierbar sein. Vom kleinen Laptop bis zum Cluster
@@ -284,7 +289,7 @@ auf einen Computer als lokale kopie besorgen kann.
 Dann soll damit z.B. offline gearbeitet werden können und bei einem Reconnect
 werden die geänderten Daten übertragen. Konflikte können wie o.g. behandelt werden.
 
-## Replikation (Master-Master)
+#### Replikation (Master-Master)
 
 Der DocElem Store sollte als Service (Hintergrundprogramm) konzipiert sein.
 Jede neue Instanz des Hintergrundprogramms sollte einen weiteren Knoten im
@@ -314,7 +319,7 @@ führt das verlangte Insert aus und schickt es wieder weiter an seinen Nachbar.
 Nachbarn die auf der `informedNodes` Liste bereits stehen,
 müssen nicht mehr benachrichtig werden.
 
-## Synchronisierung (Wiederherstellung von Offline)
+#### Synchronisierung (Wiederherstellung von Offline)
 
 Man soll den DocElem Store z.B. auf ein Laptop laden können und daran offline arbeiten,
 wenn der Laptop wieder online ist, kann es sich synchronisieren.
