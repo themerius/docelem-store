@@ -95,7 +95,7 @@ Damit kann ein abstrakter Syntaxbaum repräsentiert werden.
 Dadurch, dass ein Dokumentelement eventuell in mehreren Dokument-Korpera
 vorkommen kann, gibt es noch weitere Properties auf den Kanten:
 
-  * belongs_to: uuid des Root-DocElems
+  * belongs_to/corpus: uuid des Root-DocElems
   * is_cited: true / version-nr (des zitierten DocElem)
   * layer: id
 
@@ -104,13 +104,25 @@ aus einem anderen Dokument.
 Ein aktives `is_cited` erfordert, dass auf eine bestimmte Version des
 Dokumentelements zitiert wird.
 
+Anhand der `layer` werden die verschiedenen Versionen des gesamten
+Dokumentenkorpus festgehalten. (Markierung einer Ausgabe/Edition eines Dokuments.)
+
 Man kann natürlich auch von jedem Dokumentelement ausgehend die Topologie
 ablaufen. Nur muss dann dazu die Angabe gemacht werden, zu welchem
 Dokument die Topologie angezeigt werden soll.
 Das ist nützlich wenn man z.B. einen Teilausschnitt eines Dokuments
 betrachten will.
 
+### Topologie API
+
+    docelem ? GetNextSibling(to=uuid, corpus=uuid_root_elem)
+    docelem ? GetFirstChild(to=uuid, corpus=uuid_root_elem)
+    docelem ? GetPreviousSibling(to=uuid, corpus=uuid_root_elem)
+    docelem ? GetParent(to=uuid, corpus=uuid_root_elem)
+
 # Versionsmanagement
+
+TODO: Unterteilen in Model-Versionierung und Annotations-Versionierung!
 
 Dokumentelemente mit Versionen sind quasi mehrdimensionale Dokumentelemente.
 Jedes Dokumentelement hat einen Vektor/Liste wo die Vergangenheit des
@@ -132,6 +144,29 @@ Wird z.B. eine Version eines gesamten Dokuments "getaggt",
 so werden die betroffenen Annotationslayer am besten eingefrohren
 und damit nicht mehr veränderbar gemacht.
 
+Ein Annotationslayer kann z.B. von einer Person oder von Programm stammen.
+Es sollte aber auch möglich sein, ein Dokumentelement in seiner Gesamtheit
+(also Versionsunabhängig) annotieren zu können.
+Das kann nützlich sein, wenn man z.B. ein Dokumentelement in eine Art "Ordner"
+packen will. (Ähnlich wie ein Bild in mehren Photoalben vorkommen kann.)
+
+TODO Discuss: Das Modell eines Dokumentelements kann unter Umständen z.B. in mehreren
+Dokumenten-Korpera vorkommen. Eventuell kann es sich in verschiedene Richtungen
+entwickeln. Daher könnte es nützlich sein, von Anfang an ein BRANCHING-Konzept
+beim Versionsmanagement zu berücksichtigen.
+Ein Branch wäre dann vergleichbar mit einem Annotationslayer.
+Eine Alternative zum Branch wäre eine tiefe Kopie -> neues Dokumentelement...
+
+    VERSION/Key = {HASH, DATETIME-UTC, BRANCH}, MODEL|MODEL-BLOB, provenance?
+
+    0af  11:11  master  $UUID  "Hallo"
+    f0a  11:15  master  $UUID  "Hallo Welt"
+    ffa  11:16  master  $UUID  "Hallo Welt!"
+    ...
+
+    Pseudo-Query um die aktuellste Version zu erhalten:
+    select from Versions where UUID=? and order by RID desc skip 0 limit 1
+
 ## Konflikte über Annotationen behandeln
 
 Wenn Autor und Co-Autoren gleichzeitig am gleichen Dokumentelement arbeiten,
@@ -150,13 +185,17 @@ Beispiel:
     an das Dokumentelement annotiert. (z.B. sogar mit Merge-Vorschlägen;
     im Prinzip kann das wie "kurieren" behandelt werden.)
 
+Dieses Prinzip ist  für Batch-Processing gut geeignet.
+
 ## Konflikte Live behandeln
 
-Der Editor des Dokumentelements bringt eine Live-Ansicht mit und übernimmt die Merges.
+Der Modell-Editor des Dokumentelements bringt eine Live-Ansicht mit und übernimmt die Merges.
 Bei Text könnte es so aussehen, dass alle Autoren sich den gleichen Dokumentelement-Aktor
 teilen und diesem Nachrichten schicken.
 Sobald der Aktor Änderungen feststellt, werden alle anderen verbundenen Autoren
 sofort informiert. Bei Text zeigt Google Docs wie das funktionieren kann.
+
+Dieses Prinzip ist mehr "responsive" und daher eher für den direkten User-Input geeignet.
 
 # Nutzermanagement
 
@@ -252,7 +291,8 @@ Cluster eröffnen / repräsentieren.
 Nach Möglichkeit sollt es so wenig wie möglich Konfliktfläche geben.
 Ein INSERT sollte immer unproblematisch sein, um es zu synchronisieren.
 Die UPDATEs können Probleme verursachen, wenn z.B. zwei Benutzer gleichzeitig
-etwas aktualisieren wollen. Die UPDATES sollten also auch als INSERTS realisert werden!
+etwas aktualisieren wollen. Die UPDATES sollten also auch als INSERTS realisert werden,
+es wird immer nur neues Wissen hinzugefügt!
 
 Das heißt ein Cluster-Knoten führt einen Insert aus und informiert seine Nachbar-Knoten.
 Durch einen HASH ist der Eintrag eindeutig identifizierbar.
@@ -283,3 +323,6 @@ dort werden sämtliche Aktionen wie INSERT oder NOW OFFLINE mit DATETIME aufgeze
 Jetzt kann der Offline-Knoten herausfinden, ab welchem DATETIME er die Änderungen
 des restlichen Clusters benötigt und welche Änderungen er innerhalb der Offline-Zeit
 an den restlichen Cluster schicken muss.
+
+Das `chrono.log` in seiner Gesamtheit ist also quasi auch ein Database-Dump,
+auf einem sehr hohen Abstraktionslevel!
