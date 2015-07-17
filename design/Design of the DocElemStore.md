@@ -107,6 +107,8 @@ Dokumentelements zitiert wird.
 Anhand der `layer` werden die verschiedenen Versionen des gesamten
 Dokumentenkorpus festgehalten. (Markierung einer Ausgabe/Edition eines Dokuments.)
 
+![Topology Layer](Topology Layer.jpg)
+
 Man kann natürlich auch von jedem Dokumentelement ausgehend die Topologie
 ablaufen. Nur muss dann dazu die Angabe gemacht werden, zu welchem
 Dokument die Topologie angezeigt werden soll.
@@ -143,6 +145,8 @@ zugeordnet.
 Wird z.B. eine Version eines gesamten Dokuments "getaggt",
 so werden die betroffenen Annotationslayer am besten eingefrohren
 und damit nicht mehr veränderbar gemacht.
+
+![Model Versions and Annotation Layers](Model Versions and Annotation Layers.jpg)
 
 Ein Annotationslayer kann z.B. von einer Person oder von Programm stammen.
 Es sollte aber auch möglich sein, ein Dokumentelement in seiner Gesamtheit
