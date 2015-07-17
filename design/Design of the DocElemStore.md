@@ -35,20 +35,26 @@ mit welchen Template-Dokumentelementen gerendert werden können.
 Man kann darüber nachdenken, diese Mappings ebenfalls
 als Dokumentelement(e) zu hinterlegen.
 
+    case "Paragraph" => "uuid of template 1"
+    case "Section" => "uuid of template 2"
+    case other => "uuid of a generic template"
+
 #### Annotationen
 
-Eine Annotation ist eine Beziehung von zu einem Dokumentelement.
+Eine Annotation ist eine Beziehung von und zu einem Dokumentelement.
 Jede Annotation hat einen Zweck.
-Jede Annotation kann ein eine bestimmte Position gesetzt werden,
-und ggf. weitere Eigenschaften besitzen.
+Jede Annotation kann an eine bestimmte Position gesetzt werden,
+und ggf. weitere Eigenschaften (Properties) besitzen.
+
 Jede Annotation sollte einem (Annotations-)Layer zugeornet werden.
-Ein Annotationslayer ist wieder ein (Meta-)Dokumentelement.
-Darüber kann ermittelt werden, wer diese Annotationen geschrieben hat;
-ein Satz unerwünschter Annotationen können leicht entfernt werden;
-verschiedene Versionen eines Dokumentelements können eigene Annotationen besitzen.
+Ein Annotationslayer ist ein (Meta-)Dokumentelement,
+welches quasi als Sammelstelle für die Annotationen dient.
+Darüber kann auch ermittelt werden, wer (Provanance) diese Annotationen geschrieben hat;
+eine Menge unerwünschter Annotationen kann so leicht entfernt werden;
+verschiedene (Modell-)Versionen eines Dokumentelements können dadruch eigene Annotationslayer besitzen.
 
 Beispiel: In einem Paragraph wird ein Teil des Textes mit einem Kommentar versehen.
-Zweck ist die Kommentierung und der Kommentar selbst kann z.B. wieder ein Paragraph-Dokumentelement sein.
+Zweck ist die Kommentierung. Dieser Kommentar kann z.B. ein Paragraph-Dokumentelement sein.
 
     docelem ! GetAnnotations(query)
     docelem ! AnnotateWith(uuid|docelem, purpose, position, layer, props)
@@ -57,13 +63,13 @@ Zweck ist die Kommentierung und der Kommentar selbst kann z.B. wieder ein Paragr
 
 Beispiele für `query` sind:
 
-  * gib mir alle Annotationen mit Provanance name=Sven
-  * gib mir alle Annotationen
-  * gib mir die ersten 10 Annotationen vom Typ Konzept namespace="HGNC"
+  * gib mir alle Annotationen aus dem Layer mit Provanance name=Sven
+  * gib mir alle Annotationen zu dieser Version des Dokumentelements
+  * gib mir die ersten 10 Annotationen vom Typ Konzept im namespace="HGNC"
 
 #### Provenance
 
-Provenance Kanten zeigt immer auf einen Urheber (Autoren, Co-Autoren, Programme).
+Provenance Kanten zeigt immer auf einen (oder mehrere) Urheber (Autoren, Co-Autoren, Programme).
 Der Urheber wird durch ein Dokumentelement repräsentiert,
 z.B. ein Dokumentelement vom Typ Person mit z.B. einem vCard-Modell.
 
@@ -75,10 +81,11 @@ Es ist eine vom System vordefinierte Annotation mit dem Zweck
 die Herkunft zu annotieren.
 
 Weiteres Attribut könnte `importer` und `source` sein.
-Beispiel: DocElem -prov-> creator: Author Name, source: Medline, importer: shodapp...
+Beispiel: `DocElem -prov-> {creator: Author Name, source: Medline, importer: shodapp...}`
 
 ??? Der Prototyp wird zeigen, ob Provenance nicht sogar als eigener DocElem-Typ modelliert werden sollte.
-Vermutlich ist das sogar sinnvoller!
+Vermutlich ist das sogar sinnvoller! Darin könnten dann sogar noch mehr (Meta-)Informationen hinterlegt werden,
+z.B. eine Geo-Location.
 
 #### Topologie (Korpus)
 
@@ -91,12 +98,13 @@ Es gibt zwei Arten von Topologie-Kanten:
   * First Child
   * Next
 
+Damit kann ein abstrakter Syntaxbaum repräsentiert werden.
+
 Zudem gibt es noch ein Dokumentelement vom Typ `Root` oder `Document`,
 welches den Beginn eines Dokumenten-Korpus darstellt.
 Zudem können dort noch weitere Meta-Informationen zum Dokument gesammelt werden.
 (Im DocElem-Modell, den Modell-Attributen oder als Annotationen)
 
-Damit kann ein abstrakter Syntaxbaum repräsentiert werden.
 Dadurch, dass ein Dokumentelement eventuell in mehreren Dokument-Korpera
 vorkommen kann, gibt es noch weitere Properties auf den Kanten:
 
@@ -108,9 +116,12 @@ Wenn `is_cited` aktiv ist, gilt das nächste Dokumentelement als zitiert
 aus einem anderen Dokument.
 Ein aktives `is_cited` erfordert, dass auf eine bestimmte Version des
 Dokumentelements zitiert wird.
+Wenn `is_cited` inaktiv ist, bedeutet das das sich Dokumentelement in
+seinem Ursprungsdokument befindet.
 
 Anhand der `layer` werden die verschiedenen Versionen des gesamten
-Dokumentenkorpus festgehalten. (Markierung einer Ausgabe/Edition eines Dokuments.)
+Dokumentenkorpus festgehalten.
+(Nützlich zur Markierung einer Ausgabe/Edition eines Dokuments.)
 
 ![Topology Layer](Topology Layer.jpg)
 
@@ -119,6 +130,9 @@ ablaufen. Nur muss dann dazu die Angabe gemacht werden, zu welchem
 Dokument die Topologie angezeigt werden soll.
 Das ist nützlich wenn man z.B. einen Teilausschnitt eines Dokuments
 betrachten will.
+
+    // returns List[DocElem]
+    store ? GetFlatTopology(beginning=uuid, corpus=uuid, layer=id)
 
 ###### Topologie API
 
@@ -147,7 +161,7 @@ Versionierung der Annotationen (also der Kanten) geschieht über
 die Annotationslayer.
 Ein Annotationslayer ist einer spezifischen Version des Dokumentelements
 zugeordnet.
-Wird z.B. eine Version eines gesamten Dokuments "getaggt",
+Wird z.B. eine Version eines gesamten Dokuments (Root) "getaggt",
 so werden die betroffenen Annotationslayer am besten eingefrohren
 und damit nicht mehr veränderbar gemacht.
 
@@ -157,7 +171,7 @@ Ein Annotationslayer kann z.B. von einer Person oder von Programm stammen.
 Es sollte aber auch möglich sein, ein Dokumentelement in seiner Gesamtheit
 (also Versionsunabhängig) annotieren zu können.
 Das kann nützlich sein, wenn man z.B. ein Dokumentelement in eine Art "Ordner"
-packen will. (Ähnlich wie ein Bild in mehren Photoalben vorkommen kann.)
+packen will. (Ähnlich wie bei einer Photoverwaltungssoftware, wo ein Bild in mehren Photoalben vorkommen kann.)
 
 TODO Discuss: Das Modell eines Dokumentelements kann unter Umständen z.B. in mehreren
 Dokumenten-Korpera vorkommen. Eventuell kann es sich in verschiedene Richtungen
@@ -261,28 +275,32 @@ Das bedeutet es muss vor dem Import eine ID erzeugt werden,
 welche vom Modell-Inhalt abhängt (HASH).
 
 Beim ersten Erzeugen wird eine zufällige UUID (mit URI) erzeugt,
-als ID für das Dokumentelement.
+als ID für das Dokumentelement. (Z.B. URI=scai.fraunhofer.de, UUID=ef8i (base64 o.ä.))
+
+Es gibt folgende Fälle zu beachten:
 
   1. Man kennt keine UUID, nur das Modell. Es existiert auch noch keine UUID und diese muss erzeugt werden.
-  2. Man kennt die UUID nicht, sondern nur das Modell, welches einer existierenden UUID
+  2. Man kennt die UUID nicht, sondern nur das Modell (d.h. man hat den HASH), welches einer existierenden UUID
 (in einer bestimmten Version) zugeordent werden soll. (Doppelter Batch Import)
   3. Man kennt die UUID und möchte explizit eine neue Version (des Modells) hinzufügen. (Entspricht EDIT-Operation)
   4. Man hat ein Modell, welches zwar einer UUID zuordenbar ist,
 möchte dafür aber explizit eine weitere neue UUID zuweisen.
 
-UUID A -> HASH 2 (HEAD) -> HASH 1
+Folgende (Drei-Töpfige) Datenstruktur kann diese Fälle berücksichtigen:
 
-HASH 1 -> UUID A
-HASH 2 -> UUID A
+    UUID A -> HASH 2 (HEAD) -> HASH 1
 
-HASH 1 -> Modell Version 1
-HASH 2 -> Modell Version 2
+    HASH 1 -> UUID A
+    HASH 2 -> UUID A
+
+    HASH 1 -> Modell Version 1
+    HASH 2 -> Modell Version 2
 
 ## Verteiltes System
 
-Der DocElem Store soll ein verteilter Dienst sein, der mist möglichst wenig
-Konfigurationsaufwand installierbar sein. Vom kleinen Laptop bis zum Cluster
-bzw. mehrere kleine Laptop können auch ein Cluster bilden.
+Der DocElem Store soll ein verteilter Dienst sein, der mit möglichst wenig
+Konfigurationsaufwand installierbar sein sollte. Vom kleinen single Laptop bis zum Cluster,
+aber auch mehrere kleine Laptops können einem Cluster beitreten.
 
 Zudem ist eine wichtige Eigenschaft, dass man sich den Datenbestand (oder eine Teilmenge davon)
 auf einen Computer als lokale kopie besorgen kann.
@@ -295,18 +313,18 @@ Der DocElem Store sollte als Service (Hintergrundprogramm) konzipiert sein.
 Jede neue Instanz des Hintergrundprogramms sollte einen weiteren Knoten im
 Cluster eröffnen / repräsentieren.
 
-    store ! FormCluster(with=remoteStore)
+    store ! FormCluster(with=remoteStore)  // eine Initial-Adresse
 
 Nach Möglichkeit sollt es so wenig wie möglich Konfliktfläche geben.
 Ein INSERT sollte immer unproblematisch sein, um es zu synchronisieren.
 Die UPDATEs können Probleme verursachen, wenn z.B. zwei Benutzer gleichzeitig
 etwas aktualisieren wollen. Die UPDATES sollten also auch als INSERTS realisert werden,
-es wird immer nur neues Wissen hinzugefügt!
+d.h. es wird immer nur neues Wissen hinzugefügt!
 
 Das heißt ein Cluster-Knoten führt einen Insert aus und informiert seine Nachbar-Knoten.
 Durch einen HASH ist der Eintrag eindeutig identifizierbar.
 
-    KEY = {HASH, DATETIME-UTC}, MODEL|BLOB, provenance?
+    entry = {KEY = {HASH, DATETIME-UTC}, MODEL|BLOB, provenance?}
 
 Die Nachricht an die Nachbarn könnte so aussehen:
 
@@ -319,6 +337,11 @@ führt das verlangte Insert aus und schickt es wieder weiter an seinen Nachbar.
 Nachbarn die auf der `informedNodes` Liste bereits stehen,
 müssen nicht mehr benachrichtig werden.
 
+Falls es zu Konflikten kommt (zwei Autoren editieren gleichzeitig das gleiche Dokumentelement),
+kann noch immer in der History des Dokumentelements nachgeschaut werden.
+TODO!: Solche Konflikte automatisch zu identifizieren könnte etwas tricky werden.
+Das Auflösen eines identifizierten Konflikts kann jedoch relativ einfach gelöst werden (s. vorherige Kapitel).
+
 #### Synchronisierung (Wiederherstellung von Offline)
 
 Man soll den DocElem Store z.B. auf ein Laptop laden können und daran offline arbeiten,
@@ -326,12 +349,14 @@ wenn der Laptop wieder online ist, kann es sich synchronisieren.
 
 Zunächst muss ermittelt werden, welche der neuen Einträge versäumt wurden.
 
-Dazu sollten alle Systeme eine `chrono.log` Datei erstellen,
-dort werden sämtliche Aktionen wie INSERT oder NOW OFFLINE mit DATETIME aufgezeichnet werden.
+Dazu sollten alle Systeme eine `chrono.log` Datei/DB erstellen,
+dort werden sämtliche Aktionen/Ereignisse wie INSERT oder NOW OFFLINE mit DATETIME aufgezeichnet werden.
 
 Jetzt kann der Offline-Knoten herausfinden, ab welchem DATETIME er die Änderungen
 des restlichen Clusters benötigt und welche Änderungen er innerhalb der Offline-Zeit
 an den restlichen Cluster schicken muss.
+
+Bei eventuellen Konflikten können diese wie in den oberen Kapiteln entsprechend behandelt werden.
 
 Das `chrono.log` in seiner Gesamtheit ist also quasi auch ein Database-Dump,
 auf einem sehr hohen Abstraktionslevel!
