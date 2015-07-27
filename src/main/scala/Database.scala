@@ -25,6 +25,7 @@ object OrientDB extends Database {
   def graph = factory.getTx
 
   def fetchDocElemPayload(uuid: String): DocElemPayload = {
+    println(s"Fetching $uuid")
     val deVertex = graph.query.has("uuid", uuid).vertices.toList(0)
     val deModel = deVertex.getProperty("model").asInstanceOf[String]
     val deType = deVertex.getProperty("type").asInstanceOf[String]
@@ -42,17 +43,29 @@ object OrientDB extends Database {
         "model", de.model
       )
     }
+    println(s"Written ${deps.size} DocElems into the Database.")
     g.commit()
   }
 
   // uuidA is annotated by uuidB as Annotation.
   // TODO: add polymorphic method with generic position argument
-  def annotatedWith(uuidA: String, uuidB: String) = {
+  def annotatedWith(uuidA: String, uuidB: String): Unit = {
     val g = graph
-    val va = g.query.has("uuid", uuidA).vertices.toList(0)
-    val vb = g.query.has("uuid", uuidB).vertices.toList(0)
-    val aAnnotatedB = graph.addEdge(null, va, vb, "annotated_with");
-    g.commit()
+    try {
+      val va = g.query.has("uuid", uuidA).vertices.toList(0)
+      val vb = g.query.has("uuid", uuidB).vertices.toList(0)
+      val aAnnotatedB = graph.addEdge(null, va, vb, "annotated_with");
+      g.commit()
+      println(s"Created Edge(annotated_with) ${aAnnotatedB}.")
+    } catch {
+      case e: Exception => {
+        g.rollback()
+        println(s"ROLLBACK Edge(annotated_with) ${uuidA} -> ${uuidB}! Retry...")
+        annotatedWith(uuidA, uuidB)
+      }
+    } finally {
+      g.shutdown()
+    }
   }
 
   def hasProvanance(uuidA: String, uuidB: String) = {
@@ -60,6 +73,7 @@ object OrientDB extends Database {
     val va = g.query.has("uuid", uuidA).vertices.toList(0)
     val vb = g.query.has("uuid", uuidB).vertices.toList(0)
     val aAnnotatedB = graph.addEdge(null, va, vb, "has_provanance");
+    println(s"Created Edge(has_provanance) ${aAnnotatedB}.")
     g.commit()
   }
 

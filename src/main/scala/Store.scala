@@ -1,6 +1,10 @@
 package eu.themerius.docelemstore
 
-import akka.actor.{ ActorRef, ActorSystem, Props, Actor, Inbox }
+import akka.actor.{ ActorRef, ActorSystem, Props, Actor, Inbox, PoisonPill }
+import akka.pattern.gracefulStop
+import scala.concurrent.duration._
+import scala.concurrent.Await
+import scala.concurrent.Future
 
 case class Get(uuid: String, version: Int = 0)
 case class Create(dep: Seq[DocElemPayload])
@@ -19,6 +23,7 @@ class Store extends Actor {
       println(s"Get and Create § $uuid in version $version.")
       val payload = OrientDB.fetchDocElemPayload(uuid)
       val de = context.actorOf( Props(classOf[DocElem], payload) )
+      context.watch(de)
       sender ! Response(List(de))
     }
     case Create(deps) => {
@@ -38,7 +43,22 @@ class Store extends Actor {
       val payloads = reader.getDocElemPayload
       OrientDB.saveDocElemPayloads(payloads)
     }
+    case "DieHard" => {
+      stopChilds()
+      self ! PoisonPill
+    }
     case other => println("Can't handle " + other)
+  }
+
+  def stopChilds() = {
+    val stopped = context.children.map { child =>
+      context.unwatch(child)
+      gracefulStop(child, 5.seconds, PoisonPill)
+    }.toList
+    // block until all actors are gracefully stopped or have a timeout
+    println(s"Store is stopping. Await for ${stopped.length} childrens to stop.")
+    val awaited = stopped.map(Await.result(_, 5.seconds))
+    println(s"Store has gracefully stopped all children: ${awaited.min}.")
   }
 }
 

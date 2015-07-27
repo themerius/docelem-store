@@ -10,12 +10,14 @@ import scala.concurrent.Await
 
 object DocElemStore extends App {
 
+  // Start Akka
   val system = ActorSystem("docelem-store")
 
   // Create the 'greeter' actor
   val store = system.actorOf(Props[Store], "store")
   println(store)
 
+  store ! Init("/About.xml")
   store ! Init("/MedLineAbstracts10k.xml")
 
   val inbox = Inbox.create(system)
@@ -45,11 +47,11 @@ object DocElemStore extends App {
 
   time {
     inbox.send(store, Get("23664431"))
-    val Response(de) = inbox.receive(5.seconds)
+    val Response(de) = inbox.receive(10.seconds)
     de(0) ! OfProvenance("person-001")
   }
 
-  system.shutdown
+  //system.shutdown
 
   def time[A](f: => A) = {
     val s = System.nanoTime
