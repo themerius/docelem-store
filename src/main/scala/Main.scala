@@ -8,6 +8,8 @@ import akka.pattern.ask
 import akka.util.Timeout
 import scala.concurrent.Await
 
+import eu.themerius.docelemstore.utils.Stats.time
+
 object DocElemStore extends App {
 
   // Start Akka
@@ -18,7 +20,7 @@ object DocElemStore extends App {
   println(store)
 
   store ! Init("/About.xml")
-  store ! Init("/MedLineAbstracts10k.xml")
+  store ! Init("/MedLineAbstracts100k.xml")
 
   val inbox = Inbox.create(system)
   implicit val timeout = Timeout(5.seconds)
@@ -40,24 +42,17 @@ object DocElemStore extends App {
   //   println(awaited.force)
   // }
 
-  time {
+  time ("Create:Person") {
     val dep = DocElemPayload("person-001", "Person", "Sven Hodapp")
     store ! Create(dep :: Nil)
   }
 
-  time {
+  time ("Add:Prov") {
     inbox.send(store, Get("23664431"))
-    val Response(de) = inbox.receive(10.seconds)
+    val Response(de) = inbox.receive(20.seconds)
     de(0) ! OfProvenance("person-001")
   }
 
-  //system.shutdown
-
-  def time[A](f: => A) = {
-    val s = System.nanoTime
-    val ret = f
-    println("time: "+(System.nanoTime-s)/1e6+"ms")
-    ret
-  }
+  system.shutdown
 
 }

@@ -27,7 +27,7 @@ Then you can connect like this:
     val adr = Address("akka.tcp", "docelem-store", "0.0.0.0", 2552)
     val store = system.actorOf(Props[Store].withDeploy(Deploy(scope=RemoteScope(adr))))
     // The `store` actors behaves like a local actor, but is remote
-    
+
     // Let's receive some DocElem actors
     val inbox = Inbox.create(system)
     implicit val timeout = Timeout(5.seconds)
@@ -38,3 +38,12 @@ Then you can connect like this:
     val awaited = msgs.map(Await.result(_, timeout.duration).asInstanceOf[String])
     // Go back to serialized code
     println(awaited.force)
+
+## Cheat Sheets
+### OrientDB SQL
+
+Fulltext lucene query example:
+    select from Abstract where model LUCENE ' "BACKGROUND" AND "health problem" '
+
+Get the newest version of a specific document element:
+    select from Abstract where uuid = "18473096" order by @rid desc skip 0 limit 1

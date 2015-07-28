@@ -2,11 +2,20 @@ package eu.themerius.docelemstore
 
 import com.tinkerpop.blueprints.impls.orient.OrientGraph
 import com.tinkerpop.blueprints.impls.orient.OrientGraphFactory
+import com.orientechnologies.orient.core.metadata.schema.OType
+import com.orientechnologies.orient.core.metadata.schema.OClass
+import com.orientechnologies.orient.core.sql.OCommandSQL
+import com.orientechnologies.orient.core.storage.ORecordDuplicatedException
 
 import scala.collection.JavaConverters._
 import scala.collection.JavaConversions._
 
+import java.security.MessageDigest;
+import java.util.Base64;
+
 import scala.xml.XML
+
+import eu.themerius.docelemstore.utils.Stats.time
 
 case class DocElemPayload(uuid: String, typ: String, model: String)
 
@@ -21,8 +30,43 @@ object OrientDB extends Database {
 
   new OrientGraph("plocal:/tmp/docelem-store")
 
-  val factory = new OrientGraphFactory("plocal:/tmp/docelem-store").setupPool(1,10)
+  val factory = new OrientGraphFactory("plocal:/tmp/docelem-store").setupPool(1,100)
   def graph = factory.getTx
+
+  def createDocElemSchema(name: String) = {
+    val db = factory.getDatabase()
+    val deClass = db.getMetadata().getSchema().getOrCreateClass(name)
+
+    if (deClass.getProperty("uuid") == null) {
+      val vClass = db.getMetadata().getSchema().getOrCreateClass("V")
+      deClass.addSuperClass(vClass)
+
+      db.commit()
+      deClass.createProperty("uuid", OType.STRING)
+      deClass.createIndex(s"${name}.uuid", OClass.INDEX_TYPE.NOTUNIQUE_HASH_INDEX, "uuid")
+      deClass.createProperty("utc", OType.DATETIME)
+      deClass.createProperty("model", OType.STRING)
+      deClass.createIndex(s"${name}.model", "FULLTEXT", null, null, "LUCENE", List("model"): _*)
+      deClass.createProperty("hash", OType.STRING)
+      deClass.createIndex(s"${name}.hash", OClass.INDEX_TYPE.UNIQUE_HASH_INDEX, "hash")
+      deClass.createProperty("prev", OType.STRING)
+
+      //deClass.createIndex(s"${name}.hash", OClass.INDEX_TYPE.UNIQUE_HASH_INDEX, List("uuid", "hash"): _*)
+
+      println("Created DocElem Type " + name)
+    }
+  }
+
+  def modelHasher(salt: String, model: String): String = {
+    val md = MessageDigest.getInstance("SHA-1")
+    // All automatically imported models should have the same salt,
+    // so that they can be deduplicated.
+    // Manual added models are salted with the uuid for example.
+    md.update(salt.getBytes("UTF-8"))
+    md.update(model.getBytes("UTF-8"))
+    val base = Base64.getUrlEncoder()
+    base.encodeToString(md.digest()).subSequence(0, 27).toString()
+  }
 
   def fetchDocElemPayload(uuid: String): DocElemPayload = {
     println(s"Fetching $uuid")
@@ -33,18 +77,39 @@ object OrientDB extends Database {
   }
 
   // do a batch import
-  def saveDocElemPayloads(deps: Seq[DocElemPayload]) = {
-    val g = graph
-    deps.map { de =>
+  def saveDocElemPayloads(deps: Seq[DocElemPayload]) = time ("OrientDB:save") {
+    // make new schemas for each found type
+    val typs = deps.map(_.typ).toSet
+    typs.map(createDocElemSchema)
+
+    // push the data to db
+    var duplicates = 0
+
+    deps.foreach { de =>
+      val g = graph
+
       g.addVertex(
-        "class:DocElem",
+        "class:" + de.typ,
         "uuid", de.uuid,
-        "type", de.typ,
-        "model", de.model
+        "model", de.model,
+        "hash", modelHasher("dump-import", de.model)
       )
+
+      try {
+        // note: all addVertex in a big transaction may be more performant
+        g.commit()
+      } catch {
+        case e: ORecordDuplicatedException => {
+          duplicates += 1
+          g.rollback()
+        }
+      } finally {
+        g.shutdown()
+      }
     }
-    println(s"Written ${deps.size} DocElems into the Database.")
-    g.commit()
+
+    println(s"Added ${deps.size} DocElems into the Database.")
+    println(s"And ${duplicates} where duplicates, so they are ignored.")
   }
 
   // uuidA is annotated by uuidB as Annotation.
@@ -81,10 +146,11 @@ object OrientDB extends Database {
 
 class XMLReader(file: String) {
   val xml = XML.load(file)
-  def getDocElemPayload = {
+  def getDocElemPayload = time ("XMLReader") {
     val nodes = xml \\ "modd" \\ "docelems" \\ "docelem"
-    nodes.map(
+    val payloads = nodes.map(
       d => DocElemPayload(d \ "id" text, d \ "type" text, (d \ "model")(0).child.mkString)
     )
+    payloads
   }
 }
