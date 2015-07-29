@@ -11,6 +11,7 @@ libraryDependencies ++= Seq(
   "org.scala-lang.modules" %% "scala-xml" % "1.0.3",
   "com.orientechnologies" % "orientdb-graphdb" % "2.1-rc4",
   "com.orientechnologies" % "orientdb-lucene" % "2.1-rc4",
+  "com.orientechnologies" % "orientdb-jdbc" % "2.1-rc4",
   "org.scalatest" %% "scalatest" % "2.2.4" % "test"
 )
 

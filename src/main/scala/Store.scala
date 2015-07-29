@@ -20,7 +20,7 @@ class Store extends Actor {
 
   def receive = {
     case Get(uuid, version) => {
-      println(s"Get and Create § $uuid in version $version.")
+      println(s"Get and Create DocElem-Actor § $uuid in version $version.")
       val payload = OrientDB.fetchDocElemPayload(uuid)
       val de = context.actorOf( Props(classOf[DocElem], payload) )
       context.watch(de)

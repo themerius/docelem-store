@@ -7,11 +7,14 @@ import com.orientechnologies.orient.core.metadata.schema.OClass
 import com.orientechnologies.orient.core.sql.OCommandSQL
 import com.orientechnologies.orient.core.storage.ORecordDuplicatedException
 
+import com.orientechnologies.orient.jdbc.OrientJdbcDriver
+
 import scala.collection.JavaConverters._
 import scala.collection.JavaConversions._
 
-import java.security.MessageDigest;
-import java.util.Base64;
+import java.security.MessageDigest
+import java.util.Base64
+import java.util.Properties
 
 import scala.xml.XML
 
@@ -30,8 +33,16 @@ object OrientDB extends Database {
 
   new OrientGraph("plocal:/tmp/docelem-store")
 
-  val factory = new OrientGraphFactory("plocal:/tmp/docelem-store").setupPool(1,100)
+  val factory = new OrientGraphFactory("plocal:/tmp/docelem-store").setupPool(10,100)
   def graph = factory.getTx
+
+  // Init JDBC
+  val info = new Properties;
+  info.put("db.usePool", "true")
+  info.put("db.pool.min", "10")
+  info.put("db.pool.max", "100")
+  Class.forName("com.orientechnologies.orient.jdbc.OrientJdbcDriver")
+  val jdbc = java.sql.DriverManager.getConnection("jdbc:orient:plocal:/tmp/docelem-store", info)
 
   def createDocElemSchema(name: String) = {
     val db = factory.getDatabase()
@@ -68,12 +79,18 @@ object OrientDB extends Database {
     base.encodeToString(md.digest()).subSequence(0, 27).toString()
   }
 
-  def fetchDocElemPayload(uuid: String): DocElemPayload = {
-    println(s"Fetching $uuid")
-    val deVertex = graph.query.has("uuid", uuid).vertices.toList(0)
-    val deModel = deVertex.getProperty("model").asInstanceOf[String]
-    val deType = deVertex.getProperty("type").asInstanceOf[String]
-    DocElemPayload(uuid, deType, deModel)
+  def fetchDocElemPayload(uuid: String): DocElemPayload = time (s"OrientDB:fetch:$uuid") {
+    val stmt = jdbc.createStatement()
+    val rs = stmt.executeQuery(s"""
+      select from V where uuid = "$uuid" order by @rid desc skip 0 limit 1
+    """)
+    // fetch the first record
+    rs.next()
+    val model = rs.getString("model")
+    val typ = rs.getString("@class")
+    rs.close()
+    stmt.close()
+    DocElemPayload(uuid, typ, model)
   }
 
   // do a batch import

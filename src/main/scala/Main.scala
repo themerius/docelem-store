@@ -19,11 +19,12 @@ object DocElemStore extends App {
   val store = system.actorOf(Props[Store], "store")
   println(store)
 
-  store ! Init("/About.xml")
-  store ! Init("/MedLineAbstracts100k.xml")
+  //store ! Init("/About.xml")
+  //store ! Init("/MedLineAbstracts5k.xml")
+  //store ! Init("/MedLineAbstracts100k.xml")
 
   val inbox = Inbox.create(system)
-  implicit val timeout = Timeout(5.seconds)
+  implicit val timeout = Timeout(120.seconds)
 
   // get result of one DocElem
   // time {
@@ -49,7 +50,7 @@ object DocElemStore extends App {
 
   time ("Add:Prov") {
     inbox.send(store, Get("23664431"))
-    val Response(de) = inbox.receive(20.seconds)
+    val Response(de) = inbox.receive(120.seconds)
     de(0) ! OfProvenance("person-001")
   }
 
