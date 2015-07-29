@@ -155,7 +155,7 @@ object OrientDB extends Database {
     println(s"And ${duplicates} where duplicates, so they are ignored.")
   }
 
-  def annotate(ids: ConnectedVs, sem: Semantics, otherProps: Map[String, Any]) =
+  def annotate(ids: ConnectedVs, sem: Semantics, otherProps: Map[String, Any]): Unit =
     time ("OrientDB:annotate") {
       createAnnotationSchema(sem.purpose)
 
@@ -195,7 +195,7 @@ object OrientDB extends Database {
           println(s"ROLLBACK ${ids.fromUUID} -${sem.purpose}-> ${ids.toUUID}!" +
                    " Because we are optimistic. Retry...")
           // Retrying because on the same vertex may also be annotated at the same time.
-          // And when Ignore?
+          annotate(ids, sem, otherProps)
         }
         case e: ORecordDuplicatedException => {
           g.rollback()
