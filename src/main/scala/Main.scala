@@ -20,7 +20,7 @@ object DocElemStore extends App {
   println(store)
 
   //store ! Init("/About.xml")
-  //store ! Init("/MedLineAbstracts5k.xml")
+  store ! Init("/MedLineAbstracts5k.xml")
   //store ! Init("/MedLineAbstracts100k.xml")
 
   val inbox = Inbox.create(system)
@@ -43,16 +43,12 @@ object DocElemStore extends App {
   //   println(awaited.force)
   // }
 
-  time ("Create:Person") {
-    val dep = DocElemPayload("person-001", "Person", "Sven Hodapp")
-    store ! Create(dep :: Nil)
-  }
+  val dep = DocElemPayload("person-001", "Person", "Sven Hodapp")
+  store ! Create(dep :: Nil)
 
-  time ("Add:Prov") {
-    inbox.send(store, Get("23664431"))
-    val Response(de) = inbox.receive(120.seconds)
-    de(0) ! OfProvenance("person-001")
-  }
+  inbox.send(store, Get("23664431"))
+  val Response(de) = inbox.receive(120.seconds)
+  de(0) ! AnnotateWith("person-001", "has_provanance")
 
   system.shutdown
 

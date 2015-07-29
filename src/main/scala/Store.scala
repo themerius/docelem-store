@@ -63,8 +63,7 @@ class Store extends Actor {
 }
 
 case class Projection(p: String)
-case class AnnotateWith(uuid: String)
-case class OfProvenance(uuid: String)
+case class AnnotateWith(uuid: String, purpose: String)
 
 class DocElem(payload: DocElemPayload) extends Actor {
   def receive = {
@@ -74,8 +73,11 @@ class DocElem(payload: DocElemPayload) extends Actor {
       case "Raw" => sender ! payload.model // isTextModel, isBinaryModel
       case other => sender ! "No Projection found"
     }
-    case AnnotateWith(uuid) => OrientDB.annotatedWith(payload.uuid, uuid)
-    case OfProvenance(uuid) => OrientDB.hasProvanance(payload.uuid, uuid)
+    case AnnotateWith(uuid, purpose) => {
+      val ids = Annotation.ConnectedVs(payload.uuid, uuid)
+      val sem = Annotation.Semantics(purpose, "debug", Map[String, Any]())
+      OrientDB.annotate(ids, sem, Map[String, Any]())
+    }
     // case Update
     case other => {
       println("Can't handle " + other)

@@ -6,6 +6,7 @@ import com.orientechnologies.orient.core.metadata.schema.OType
 import com.orientechnologies.orient.core.metadata.schema.OClass
 import com.orientechnologies.orient.core.sql.OCommandSQL
 import com.orientechnologies.orient.core.storage.ORecordDuplicatedException
+import com.orientechnologies.orient.core.exception.OConcurrentModificationException
 
 import com.orientechnologies.orient.jdbc.OrientJdbcDriver
 
@@ -21,6 +22,13 @@ import scala.xml.XML
 import eu.themerius.docelemstore.utils.Stats.time
 
 case class DocElemPayload(uuid: String, typ: String, model: String)
+
+object Annotation {
+  case class ConnectedVs(fromUUID: String, toUUID: String)
+  case class Semantics(purpose: String, layer: String, position: Map[String, Any])
+}
+
+import Annotation._
 
 
 trait Database {
@@ -68,12 +76,30 @@ object OrientDB extends Database {
     }
   }
 
-  def modelHasher(salt: String, model: String): String = {
+  def createAnnotationSchema(name: String) = {
+    val db = factory.getDatabase()
+    val deClass = db.getMetadata().getSchema().getOrCreateClass(name)
+
+    if (deClass.getProperty("layer") == null) {
+      val vClass = db.getMetadata().getSchema().getOrCreateClass("E")
+      deClass.addSuperClass(vClass)
+
+      db.commit()
+      deClass.createProperty("layer", OType.STRING)
+      deClass.createIndex(s"${name}.layer", OClass.INDEX_TYPE.NOTUNIQUE_HASH_INDEX, "layer")
+      deClass.createProperty("hash", OType.STRING)
+      deClass.createIndex(s"${name}.hash", OClass.INDEX_TYPE.UNIQUE_HASH_INDEX, "hash")
+
+      println("Created Annotation Type " + name)
+    }
+  }
+
+  def hasher(salts: List[String], model: String): String = {
     val md = MessageDigest.getInstance("SHA-1")
     // All automatically imported models should have the same salt,
     // so that they can be deduplicated.
     // Manual added models are salted with the uuid for example.
-    md.update(salt.getBytes("UTF-8"))
+    salts.foreach( salt => md.update(salt.getBytes("UTF-8")) )
     md.update(model.getBytes("UTF-8"))
     val base = Base64.getUrlEncoder()
     base.encodeToString(md.digest()).subSequence(0, 27).toString()
@@ -109,7 +135,7 @@ object OrientDB extends Database {
         "class:" + de.typ,
         "uuid", de.uuid,
         "model", de.model,
-        "hash", modelHasher("dump-import", de.model)
+        "hash", hasher(List("dump-import"), de.model)
       )
 
       try {
@@ -129,35 +155,56 @@ object OrientDB extends Database {
     println(s"And ${duplicates} where duplicates, so they are ignored.")
   }
 
-  // uuidA is annotated by uuidB as Annotation.
-  // TODO: add polymorphic method with generic position argument
-  def annotatedWith(uuidA: String, uuidB: String): Unit = {
-    val g = graph
-    try {
-      val va = g.query.has("uuid", uuidA).vertices.toList(0)
-      val vb = g.query.has("uuid", uuidB).vertices.toList(0)
-      val aAnnotatedB = graph.addEdge(null, va, vb, "annotated_with");
-      g.commit()
-      println(s"Created Edge(annotated_with) ${aAnnotatedB}.")
-    } catch {
-      case e: Exception => {
-        g.rollback()
-        println(s"ROLLBACK Edge(annotated_with) ${uuidA} -> ${uuidB}! Retry...")
-        annotatedWith(uuidA, uuidB)
-      }
-    } finally {
-      g.shutdown()
-    }
-  }
+  def annotate(ids: ConnectedVs, sem: Semantics, otherProps: Map[String, Any]) =
+    time ("OrientDB:annotate") {
+      createAnnotationSchema(sem.purpose)
 
-  def hasProvanance(uuidA: String, uuidB: String) = {
-    val g = graph
-    val va = g.query.has("uuid", uuidA).vertices.toList(0)
-    val vb = g.query.has("uuid", uuidB).vertices.toList(0)
-    val aAnnotatedB = graph.addEdge(null, va, vb, "has_provanance");
-    println(s"Created Edge(has_provanance) ${aAnnotatedB}.")
-    g.commit()
-  }
+      val stmt = jdbc.createStatement()
+      val rs1 = stmt.executeQuery(s"""
+        select from V where uuid = "${ids.fromUUID}" order by @rid desc skip 0 limit 1
+      """)
+      val rs2 = stmt.executeQuery(s"""
+        select from V where uuid = "${ids.toUUID}" order by @rid desc skip 0 limit 1
+      """)
+      // fetch the first record
+      rs1.next()
+      val rid1 = rs1.getString("@rid")
+      rs2.next()
+      val rid2 = rs2.getString("@rid")
+      rs1.close()
+      rs2.close()
+      stmt.close()
+
+      val g = graph
+      try {
+        val v1 = g.getVertex(rid1)
+        val v2 = g.getVertex(rid2)
+        val props = Map(
+          "layer" -> sem.layer,
+          "hash" -> hasher(
+            List(ids.fromUUID, ids.toUUID, sem.purpose, sem.layer),
+            v1.getProperty("hash")) // for deduplication on version (hash) and layer
+        )
+        val edge = g.addEdge(null, v1, v2, sem.purpose)
+        edge.setProperties(mapAsJavaMap(props ++ otherProps))
+        g.commit()
+        println("Created " + edge)
+      } catch {
+        case e: OConcurrentModificationException => {
+          g.rollback()
+          println(s"ROLLBACK ${ids.fromUUID} -${sem.purpose}-> ${ids.toUUID}!" +
+                   " Because we are optimistic. Retry...")
+          // Retrying because on the same vertex may also be annotated at the same time.
+          // And when Ignore?
+        }
+        case e: ORecordDuplicatedException => {
+          g.rollback()
+          println(s"ROLLBACK duplicated ${ids.fromUUID} -${sem.purpose}-> ${ids.toUUID}!")
+        }
+      } finally {
+        g.shutdown()
+      }
+    }
 
 }
 
