@@ -19,7 +19,7 @@ object DocElemStore extends App {
   val store = system.actorOf(Props[Store], "store")
   println(store)
 
-  //store ! Init("/About.xml")
+  store ! Init("/About.xml")
   store ! Init("/MedLineAbstracts5k.xml")
   //store ! Init("/MedLineAbstracts100k.xml")
 
@@ -43,8 +43,13 @@ object DocElemStore extends App {
   //   println(awaited.force)
   // }
 
+  // val dep = DocElemPayload("person-001", "Person", "Sven Hodapp")
+  // store ! Create(dep :: Nil)
+
   val dep = DocElemPayload("person-001", "Person", "Sven Hodapp")
-  store ! Create(dep :: Nil)
+  inbox.send(store, GetOrCreate(dep :: Nil))
+  val Response(dePerson) = inbox.receive(120.seconds)
+  println("GetOrCreate -> Actor -> " + dePerson)
 
   inbox.send(store, Get("23664431"))
   val Response(de) = inbox.receive(120.seconds)

@@ -33,7 +33,7 @@ import Annotation._
 
 trait Database {
   def fetchDocElemPayload(uuid: String): DocElemPayload
-  def saveDocElemPayloads(deps: Seq[DocElemPayload])
+  def saveDocElemPayloads(deps: Seq[DocElemPayload]): Seq[DocElemPayload]
 }
 
 
@@ -119,8 +119,23 @@ object OrientDB extends Database {
     DocElemPayload(uuid, typ, model)
   }
 
+  def fetchDocElemPayloadFromHash(hash: String): DocElemPayload = time (s"OrientDB:fetch:$hash") {
+    val stmt = jdbc.createStatement()
+    val rs = stmt.executeQuery(s"""
+      select from V where hash = "$hash" order by @rid desc skip 0 limit 1
+    """)
+    // fetch the first record
+    rs.next()
+    val model = rs.getString("model")
+    val typ = rs.getString("@class")
+    val uuid = rs.getString("uuid")
+    rs.close()
+    stmt.close()
+    DocElemPayload(uuid, typ, model)
+  }
+
   // do a batch import
-  def saveDocElemPayloads(deps: Seq[DocElemPayload]) = time ("OrientDB:save") {
+  def saveDocElemPayloads(deps: Seq[DocElemPayload]): Seq[DocElemPayload] = time ("OrientDB:save") {
     // make new schemas for each found type
     val typs = deps.map(_.typ).toSet
     typs.map(createDocElemSchema)
@@ -128,15 +143,20 @@ object OrientDB extends Database {
     // push the data to db
     var duplicates = 0
 
-    deps.foreach { de =>
+    // TODO: maybe it is more efficient to use also JDBC there?
+    val correctedPayloads = deps.map { de =>
       val g = graph
+
+      val hash = hasher(List("dump-import"), de.model)
 
       g.addVertex(
         "class:" + de.typ,
         "uuid", de.uuid,
         "model", de.model,
-        "hash", hasher(List("dump-import"), de.model)
+        "hash", hash
       )
+
+      var payload = de
 
       try {
         // note: all addVertex in a big transaction may be more performant
@@ -145,14 +165,20 @@ object OrientDB extends Database {
         case e: ORecordDuplicatedException => {
           duplicates += 1
           g.rollback()
+          // fetch payload from db with the correct uuid to the calculated hash
+          payload = fetchDocElemPayloadFromHash(hash)
         }
       } finally {
         g.shutdown()
       }
+
+      payload
     }
 
     println(s"Added ${deps.size} DocElems into the Database.")
     println(s"And ${duplicates} where duplicates, so they are ignored.")
+
+    correctedPayloads
   }
 
   def annotate(ids: ConnectedVs, sem: Semantics, otherProps: Map[String, Any]): Unit =

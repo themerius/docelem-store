@@ -8,6 +8,7 @@ import scala.concurrent.Future
 
 case class Get(uuid: String, version: Int = 0)
 case class Create(dep: Seq[DocElemPayload])
+case class GetOrCreate(dps: Seq[DocElemPayload])
 case class GetFlatTopology(uuid: String)
 case class Init(fileName: String)
 
@@ -29,6 +30,12 @@ class Store extends Actor {
     case Create(deps) => {
       OrientDB.saveDocElemPayloads(deps)
       // if error send error-response?
+    }
+    case GetOrCreate(deps) => {
+      val correctedPayloads = OrientDB.saveDocElemPayloads(deps)
+      val des = correctedPayloads.map( p => context.actorOf(Props(classOf[DocElem], p)) )
+      des.map( de => context.watch(de) )
+      sender ! Response(des.toList)
     }
     case GetFlatTopology(uuid) => {
       println(s"Get flat topo for § $uuid.")
@@ -78,7 +85,7 @@ class DocElem(payload: DocElemPayload) extends Actor {
       val sem = Annotation.Semantics(purpose, "debug", Map[String, Any]())
       OrientDB.annotate(ids, sem, Map[String, Any]())
     }
-    // case Update
+    // case Edit
     case other => {
       println("Can't handle " + other)
       sender ! "Can't handle " + other
