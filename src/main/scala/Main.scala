@@ -20,7 +20,7 @@ object DocElemStore extends App {
   println(store)
 
   store ! Init("/About.xml")
-  store ! Init("/MedLineAbstracts5k.xml")
+  //store ! Init("/MedLineAbstracts5k.xml")
   //store ! Init("/MedLineAbstracts100k.xml")
 
   val inbox = Inbox.create(system)
@@ -48,13 +48,13 @@ object DocElemStore extends App {
 
   val dep = DocElemPayload("person-001", "Person", "Sven Hodapp")
   inbox.send(store, GetOrCreate(dep :: Nil))
-  val Response(dePerson) = inbox.receive(120.seconds)
-  println("GetOrCreate -> Actor -> " + dePerson)
+  val ResponsePayload(depPerson) = inbox.receive(120.seconds)
+  println("GetOrCreate -> Actor -> " + depPerson)
 
   inbox.send(store, Get("23664431"))
   val Response(de) = inbox.receive(120.seconds)
   de(0) ! AnnotateWith("person-001", "has_provanance")
 
-  system.shutdown
+  //system.shutdown
 
 }

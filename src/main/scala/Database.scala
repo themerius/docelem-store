@@ -119,7 +119,7 @@ object OrientDB extends Database {
     DocElemPayload(uuid, typ, model)
   }
 
-  def fetchDocElemPayloadFromHash(hash: String): DocElemPayload = time (s"OrientDB:fetch:$hash") {
+  def fetchDocElemPayloadFromHash(hash: String): DocElemPayload = {
     val stmt = jdbc.createStatement()
     val rs = stmt.executeQuery(s"""
       select from V where hash = "$hash" order by @rid desc skip 0 limit 1

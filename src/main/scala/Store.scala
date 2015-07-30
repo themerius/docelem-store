@@ -13,6 +13,7 @@ case class GetFlatTopology(uuid: String)
 case class Init(fileName: String)
 
 case class Response(de: List[ActorRef])
+case class ResponsePayload(deps: Seq[DocElemPayload])
 
 class Store extends Actor {
   override def preStart() = {
@@ -33,9 +34,7 @@ class Store extends Actor {
     }
     case GetOrCreate(deps) => {
       val correctedPayloads = OrientDB.saveDocElemPayloads(deps)
-      val des = correctedPayloads.map( p => context.actorOf(Props(classOf[DocElem], p)) )
-      des.map( de => context.watch(de) )
-      sender ! Response(des.toList)
+      sender ! ResponsePayload(correctedPayloads)
     }
     case GetFlatTopology(uuid) => {
       println(s"Get flat topo for § $uuid.")
