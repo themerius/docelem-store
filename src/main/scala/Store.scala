@@ -5,15 +5,21 @@ import akka.pattern.gracefulStop
 import scala.concurrent.duration._
 import scala.concurrent.Await
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 case class Get(uuid: String, version: Int = 0)
 case class Create(dep: Seq[DocElemPayload])
 case class GetOrCreate(dps: Seq[DocElemPayload])
+case class GetOrCreate2(dps: Seq[DocElemPayload])
 case class GetFlatTopology(uuid: String)
 case class Init(fileName: String)
 
+case class Annotate(uuid: String, payload: DocElemPayload, purpose: String)
+
 case class Response(de: List[ActorRef])
 case class ResponsePayload(deps: Seq[DocElemPayload])
+
+case class FoundBatchOf(dps: Seq[DocElemPayload], annots: Seq[Annotate])
 
 class Store extends Actor {
   override def preStart() = {
@@ -35,6 +41,28 @@ class Store extends Actor {
     case GetOrCreate(deps) => {
       val correctedPayloads = OrientDB.saveDocElemPayloads(deps)
       sender ! ResponsePayload(correctedPayloads)
+    }
+    case GetOrCreate2(deps) => {
+      val correctedPayloads = OrientDB.saveDocElemPayloads(deps)
+      val de = context.actorOf( Props(classOf[DocElem], correctedPayloads.head) )
+      context.watch(de)
+      sender ! Response(List(de))
+    }
+    case Annotate(uuid, payload, purpose) => {
+      val correctedPayload = OrientDB.saveDocElemPayloads(List(payload)).head
+      val ids = Annotation.ConnectedVs(uuid, correctedPayload.uuid)
+      val sem = Annotation.Semantics(purpose, "debug", Map[String, Any]())
+      OrientDB.annotate(ids, sem, Map[String, Any]())
+    }
+    case FoundBatchOf(dps, annots) => Future {
+      OrientDB.saveDocElemPayloads(dps)
+      val annotsSet = annots.toSet.toSeq
+      OrientDB.saveDocElemPayloads(annotsSet.map(_.payload))
+      annotsSet.foreach{ ann =>
+        val ids = Annotation.ConnectedVs(ann.uuid, ann.payload.uuid)  // assuming the payload.uuids must not be corrected. TODO make more general!
+        val sem = Annotation.Semantics(ann.purpose, "debug", Map[String, Any]())
+        OrientDB.annotate(ids, sem, Map[String, Any]())
+      }
     }
     case GetFlatTopology(uuid) => {
       println(s"Get flat topo for § $uuid.")
@@ -70,6 +98,7 @@ class Store extends Actor {
 
 case class Projection(p: String)
 case class AnnotateWith(uuid: String, purpose: String)
+case class AnnotateWithPayload(payload: DocElemPayload, purpose: String)
 
 class DocElem(payload: DocElemPayload) extends Actor {
   def receive = {
@@ -81,6 +110,12 @@ class DocElem(payload: DocElemPayload) extends Actor {
     }
     case AnnotateWith(uuid, purpose) => {
       val ids = Annotation.ConnectedVs(payload.uuid, uuid)
+      val sem = Annotation.Semantics(purpose, "debug", Map[String, Any]())
+      OrientDB.annotate(ids, sem, Map[String, Any]())
+    }
+    case AnnotateWithPayload(otherPayload, purpose) => {
+      val correctedPayload = OrientDB.saveDocElemPayloads(List(otherPayload)).head
+      val ids = Annotation.ConnectedVs(payload.uuid, correctedPayload.uuid)
       val sem = Annotation.Semantics(purpose, "debug", Map[String, Any]())
       OrientDB.annotate(ids, sem, Map[String, Any]())
     }

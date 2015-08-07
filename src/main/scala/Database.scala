@@ -39,18 +39,18 @@ trait Database {
 
 object OrientDB extends Database {
 
-  new OrientGraph("plocal:/tmp/docelem-store")
+  new OrientGraph("plocal:/dev/shm/docelem-store2")
 
-  val factory = new OrientGraphFactory("plocal:/tmp/docelem-store").setupPool(10,100)
+  val factory = new OrientGraphFactory("plocal:/dev/shm/docelem-store2").setupPool(100,10000)
   def graph = factory.getTx
 
   // Init JDBC
   val info = new Properties;
   info.put("db.usePool", "true")
-  info.put("db.pool.min", "10")
-  info.put("db.pool.max", "100")
+  info.put("db.pool.min", "100")
+  info.put("db.pool.max", "10000")
   Class.forName("com.orientechnologies.orient.jdbc.OrientJdbcDriver")
-  val jdbc = java.sql.DriverManager.getConnection("jdbc:orient:plocal:/tmp/docelem-store", info)
+  val jdbc = java.sql.DriverManager.getConnection("jdbc:orient:plocal:/dev/shm/docelem-store2", info)
 
   def createDocElemSchema(name: String) = {
     val db = factory.getDatabase()
@@ -186,19 +186,21 @@ object OrientDB extends Database {
       createAnnotationSchema(sem.purpose)
 
       val stmt = jdbc.createStatement()
-      val rs1 = stmt.executeQuery(s"""
-        select from V where uuid = "${ids.fromUUID}" order by @rid desc skip 0 limit 1
+      val rs = stmt.executeQuery(s"""
+        select expand($$c)
+        let $$a = (
+          select from V where uuid = "${ids.fromUUID}" order by @rid desc skip 0 limit 1
+        ), $$b = (
+          select from V where uuid = "${ids.toUUID}" order by @rid desc skip 0 limit 1
+        ), $$c = unionall($$a, $$b)
       """)
-      val rs2 = stmt.executeQuery(s"""
-        select from V where uuid = "${ids.toUUID}" order by @rid desc skip 0 limit 1
-      """)
+
       // fetch the first record
-      rs1.next()
-      val rid1 = rs1.getString("@rid")
-      rs2.next()
-      val rid2 = rs2.getString("@rid")
-      rs1.close()
-      rs2.close()
+      rs.next()
+      val rid1 = rs.getString("@rid")
+      rs.next()
+      val rid2 = rs.getString("@rid")
+      rs.close()
       stmt.close()
 
       val g = graph

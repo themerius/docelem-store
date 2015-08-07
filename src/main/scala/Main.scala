@@ -51,9 +51,9 @@ object DocElemStore extends App {
   val ResponsePayload(depPerson) = inbox.receive(120.seconds)
   println("GetOrCreate -> Actor -> " + depPerson)
 
-  inbox.send(store, Get("23664431"))
-  val Response(de) = inbox.receive(120.seconds)
-  de(0) ! AnnotateWith("person-001", "has_provanance")
+  //inbox.send(store, Get("23664431"))
+  //val Response(de) = inbox.receive(120.seconds)
+  //de(0) ! AnnotateWith("person-001", "has_provanance")
 
   //system.shutdown
 
