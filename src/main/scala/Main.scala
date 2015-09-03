@@ -20,8 +20,8 @@ object DocElemStore extends App {
   println(store)
 
   store ! Init("/About.xml")
-  //store ! Init("/MedLineAbstracts5k.xml")
-  //store ! Init("/MedLineAbstracts100k.xml")
+  store ! Init("/MedLineAbstracts5k.xml")
+  store ! Init("/MedLineAbstracts100k.xml")
 
   val inbox = Inbox.create(system)
   implicit val timeout = Timeout(120.seconds)
@@ -55,6 +55,6 @@ object DocElemStore extends App {
   //val Response(de) = inbox.receive(120.seconds)
   //de(0) ! AnnotateWith("person-001", "has_provanance")
 
-  //system.shutdown
+  system.shutdown
 
 }

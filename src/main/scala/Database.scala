@@ -34,14 +34,26 @@ import Annotation._
 trait Database {
   def fetchDocElemPayload(uuid: String): DocElemPayload
   def saveDocElemPayloads(deps: Seq[DocElemPayload]): Seq[DocElemPayload]
+  def annotate(ids: ConnectedVs, sem: Semantics, otherProps: Map[String, Any]): Unit
+
+  def hasher(salts: List[String], model: String): String = {
+    val md = MessageDigest.getInstance("SHA-1")
+    // All automatically imported models should have the same salt,
+    // so that they can be deduplicated.
+    // Manual added models are salted with the uuid for example.
+    salts.foreach( salt => md.update(salt.getBytes("UTF-8")) )
+    md.update(model.getBytes("UTF-8"))
+    val base = Base64.getUrlEncoder()
+    base.encodeToString(md.digest()).subSequence(0, 27).toString()
+  }
 }
 
 
 object OrientDB extends Database {
 
-  new OrientGraph("plocal:/dev/shm/docelem-store2")
+  new OrientGraph("plocal:/tmp/docelem-store")
 
-  val factory = new OrientGraphFactory("plocal:/dev/shm/docelem-store2").setupPool(100,10000)
+  val factory = new OrientGraphFactory("plocal:/tmp/docelem-store").setupPool(100,10000)
   def graph = factory.getTx
 
   // Init JDBC
@@ -50,7 +62,7 @@ object OrientDB extends Database {
   info.put("db.pool.min", "100")
   info.put("db.pool.max", "10000")
   Class.forName("com.orientechnologies.orient.jdbc.OrientJdbcDriver")
-  val jdbc = java.sql.DriverManager.getConnection("jdbc:orient:plocal:/dev/shm/docelem-store2", info)
+  val jdbc = java.sql.DriverManager.getConnection("jdbc:orient:plocal:/tmp/docelem-store", info)
 
   def createDocElemSchema(name: String) = {
     val db = factory.getDatabase()
@@ -65,7 +77,8 @@ object OrientDB extends Database {
       deClass.createIndex(s"${name}.uuid", OClass.INDEX_TYPE.NOTUNIQUE_HASH_INDEX, "uuid")
       deClass.createProperty("utc", OType.DATETIME)
       deClass.createProperty("model", OType.STRING)
-      deClass.createIndex(s"${name}.model", "FULLTEXT", null, null, "LUCENE", List("model"): _*)
+      //deClass.createIndex(s"${name}.model", "FULLTEXT", null, null, "LUCENE", List("model"): _*)
+      //to use it, enable orientdb-lucene dependency
       deClass.createProperty("hash", OType.STRING)
       deClass.createIndex(s"${name}.hash", OClass.INDEX_TYPE.UNIQUE_HASH_INDEX, "hash")
       deClass.createProperty("prev", OType.STRING)
@@ -92,17 +105,6 @@ object OrientDB extends Database {
 
       println("Created Annotation Type " + name)
     }
-  }
-
-  def hasher(salts: List[String], model: String): String = {
-    val md = MessageDigest.getInstance("SHA-1")
-    // All automatically imported models should have the same salt,
-    // so that they can be deduplicated.
-    // Manual added models are salted with the uuid for example.
-    salts.foreach( salt => md.update(salt.getBytes("UTF-8")) )
-    md.update(model.getBytes("UTF-8"))
-    val base = Base64.getUrlEncoder()
-    base.encodeToString(md.digest()).subSequence(0, 27).toString()
   }
 
   def fetchDocElemPayload(uuid: String): DocElemPayload = time (s"OrientDB:fetch:$uuid") {
@@ -143,7 +145,7 @@ object OrientDB extends Database {
     // push the data to db
     var duplicates = 0
 
-    // TODO: maybe it is more efficient to use also JDBC there?
+    // #TODO:20 maybe it is more efficient to use also JDBC there?
     val correctedPayloads = deps.map { de =>
       val g = graph
 

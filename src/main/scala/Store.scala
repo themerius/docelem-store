@@ -59,7 +59,7 @@ class Store extends Actor {
       val annotsSet = annots.toSet.toSeq
       OrientDB.saveDocElemPayloads(annotsSet.map(_.payload))
       annotsSet.foreach{ ann =>
-        val ids = Annotation.ConnectedVs(ann.uuid, ann.payload.uuid)  // assuming the payload.uuids must not be corrected. TODO make more general!
+        val ids = Annotation.ConnectedVs(ann.uuid, ann.payload.uuid)  // assuming the payload.uuids must not be corrected. #TODO:0 make more general!
         val sem = Annotation.Semantics(ann.purpose, "debug", Map[String, Any]())
         OrientDB.annotate(ids, sem, Map[String, Any]())
       }
@@ -68,7 +68,7 @@ class Store extends Actor {
       println(s"Get flat topo for § $uuid.")
       val payload = OrientDB.fetchDocElemPayload(uuid)
       // should calculate topology
-      val lst = List.fill(10)( context.actorOf(Props(classOf[DocElem], payload)) )  // TODO: getOrCreate
+      val lst = List.fill(10)( context.actorOf(Props(classOf[DocElem], payload)) )  // #TODO:10 getOrCreate
       sender ! Response(lst)
     }
     case Init(fileName) => {
