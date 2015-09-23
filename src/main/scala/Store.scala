@@ -8,6 +8,7 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 case class Get(uuid: String, version: Int = 0)
+case class GetSimple(uuid: String, version: Int = 0)
 case class Create(dep: Seq[DocElemPayload])
 case class GetOrCreate(dps: Seq[DocElemPayload])
 case class GetOrCreate2(dps: Seq[DocElemPayload])
@@ -33,6 +34,11 @@ class Store extends Actor {
       val de = context.actorOf( Props(classOf[DocElem], payload) )
       context.watch(de)
       sender ! Response(List(de))
+    }
+    case GetSimple(uuid, version) => {
+      println(s"Get Payload § $uuid in version $version.")
+      val payload = Accumulo.fetchDocElemPayload(uuid)
+      sender ! ResponsePayload(List(payload))
     }
     case Create(deps) => {
       Accumulo.saveDocElemPayloads(deps)

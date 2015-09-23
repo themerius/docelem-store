@@ -34,6 +34,13 @@ object DocElemStore extends App {
   //   println(Await.result(msg, timeout.duration).asInstanceOf[String])
   // }
 
+  // get result of one DocElem
+  //time {
+    inbox.send(store, GetSimple("23664431"))
+    val ResponsePayload(de) = inbox.receive(60.seconds)
+    println(de)
+  //}
+
   // Get result of multiple DocElems
   // time {
   //   inbox.send(store, GetFlatTopology("about-002"))
