@@ -15,6 +15,8 @@ libraryDependencies ++= Seq(
   "org.apache.lucene" % "lucene-core" % "5.2.1",
   "org.apache.lucene" % "lucene-analyzers-common" % "5.2.1",
   "org.apache.lucene" % "lucene-queryparser" % "5.2.1",
+  "org.apache.accumulo" % "accumulo-core" % "1.7.0",
+  "org.apache.accumulo" % "accumulo-minicluster" % "1.7.0",
   "org.scalatest" %% "scalatest" % "2.2.4" % "test"
 )
 

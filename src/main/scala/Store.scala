@@ -23,50 +23,50 @@ case class FoundBatchOf(dps: Seq[DocElemPayload], annots: Seq[Annotate])
 
 class Store extends Actor {
   override def preStart() = {
-    OrientDB
+    Accumulo
   }
 
   def receive = {
     case Get(uuid, version) => {
       println(s"Get and Create DocElem-Actor § $uuid in version $version.")
-      val payload = OrientDB.fetchDocElemPayload(uuid)
+      val payload = Accumulo.fetchDocElemPayload(uuid)
       val de = context.actorOf( Props(classOf[DocElem], payload) )
       context.watch(de)
       sender ! Response(List(de))
     }
     case Create(deps) => {
-      OrientDB.saveDocElemPayloads(deps)
+      Accumulo.saveDocElemPayloads(deps)
       // if error send error-response?
     }
     case GetOrCreate(deps) => {
-      val correctedPayloads = OrientDB.saveDocElemPayloads(deps)
+      val correctedPayloads = Accumulo.saveDocElemPayloads(deps)
       sender ! ResponsePayload(correctedPayloads)
     }
     case GetOrCreate2(deps) => {
-      val correctedPayloads = OrientDB.saveDocElemPayloads(deps)
+      val correctedPayloads = Accumulo.saveDocElemPayloads(deps)
       val de = context.actorOf( Props(classOf[DocElem], correctedPayloads.head) )
       context.watch(de)
       sender ! Response(List(de))
     }
     case Annotate(uuid, payload, purpose) => {
-      val correctedPayload = OrientDB.saveDocElemPayloads(List(payload)).head
+      val correctedPayload = Accumulo.saveDocElemPayloads(List(payload)).head
       val ids = Annotation.ConnectedVs(uuid, correctedPayload.uuid)
       val sem = Annotation.Semantics(purpose, "debug", Map[String, Any]())
-      OrientDB.annotate(ids, sem, Map[String, Any]())
+      Accumulo.annotate(ids, sem, Map[String, Any]())
     }
     case FoundBatchOf(dps, annots) => Future {
-      OrientDB.saveDocElemPayloads(dps)
+      Accumulo.saveDocElemPayloads(dps)
       val annotsSet = annots.toSet.toSeq
-      OrientDB.saveDocElemPayloads(annotsSet.map(_.payload))
+      Accumulo.saveDocElemPayloads(annotsSet.map(_.payload))
       annotsSet.foreach{ ann =>
         val ids = Annotation.ConnectedVs(ann.uuid, ann.payload.uuid)  // assuming the payload.uuids must not be corrected. #TODO:0 make more general!
         val sem = Annotation.Semantics(ann.purpose, "debug", Map[String, Any]())
-        OrientDB.annotate(ids, sem, Map[String, Any]())
+        Accumulo.annotate(ids, sem, Map[String, Any]())
       }
     }
     case GetFlatTopology(uuid) => {
       println(s"Get flat topo for § $uuid.")
-      val payload = OrientDB.fetchDocElemPayload(uuid)
+      val payload = Accumulo.fetchDocElemPayload(uuid)
       // should calculate topology
       val lst = List.fill(10)( context.actorOf(Props(classOf[DocElem], payload)) )  // #TODO:10 getOrCreate
       sender ! Response(lst)
@@ -75,7 +75,7 @@ class Store extends Actor {
       println("Init Database with some data")
       val reader = new XMLReader(getClass.getResource(fileName).getPath)
       val payloads = reader.getDocElemPayload
-      OrientDB.saveDocElemPayloads(payloads)
+      Accumulo.saveDocElemPayloads(payloads)
     }
     case "DieHard" => {
       stopChilds()
@@ -111,13 +111,13 @@ class DocElem(payload: DocElemPayload) extends Actor {
     case AnnotateWith(uuid, purpose) => {
       val ids = Annotation.ConnectedVs(payload.uuid, uuid)
       val sem = Annotation.Semantics(purpose, "debug", Map[String, Any]())
-      OrientDB.annotate(ids, sem, Map[String, Any]())
+      Accumulo.annotate(ids, sem, Map[String, Any]())
     }
     case AnnotateWithPayload(otherPayload, purpose) => {
-      val correctedPayload = OrientDB.saveDocElemPayloads(List(otherPayload)).head
+      val correctedPayload = Accumulo.saveDocElemPayloads(List(otherPayload)).head
       val ids = Annotation.ConnectedVs(payload.uuid, correctedPayload.uuid)
       val sem = Annotation.Semantics(purpose, "debug", Map[String, Any]())
-      OrientDB.annotate(ids, sem, Map[String, Any]())
+      Accumulo.annotate(ids, sem, Map[String, Any]())
     }
     // case Edit
     case other => {
@@ -128,7 +128,7 @@ class DocElem(payload: DocElemPayload) extends Actor {
 
   def getHtmlProjection = {
     val templateUuid = getHtmlProjectionMapping(payload.typ)
-    val templatePayload = OrientDB.fetchDocElemPayload(templateUuid)
+    val templatePayload = Accumulo.fetchDocElemPayload(templateUuid)
 
     val tmplXml = scala.xml.XML.loadString(templatePayload.model)
 
