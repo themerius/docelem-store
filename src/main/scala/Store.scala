@@ -118,6 +118,7 @@ class DocElem(payload: DocElemPayload) extends Actor {
       val ids = Annotation.ConnectedVs(payload.uuid, uuid)
       val sem = Annotation.Semantics(purpose, "debug", Map[String, Any]())
       Accumulo.annotate(ids, sem, Map[String, Any]())
+      Accumulo.fetchAllAnnotations
     }
     case AnnotateWithPayload(otherPayload, purpose) => {
       val correctedPayload = Accumulo.saveDocElemPayloads(List(otherPayload)).head

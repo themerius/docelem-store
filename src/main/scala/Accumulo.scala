@@ -170,6 +170,14 @@ object Accumulo extends Database {
       DocElemPayload("", "", "")
   }
 
+  def fetchAllAnnotations = {
+    val auths = new Authorizations()
+    val scan = conn.createScanner("annotations", auths)
+    for (entry <- scan) {
+      println(entry.getKey, entry.getValue)
+    }
+  }
+
   def saveDocElemPayloads(deps: Seq[DocElemPayload]): Seq[DocElemPayload] = time("Accumulo:save") {
     deps.foreach { dep =>
       val hash = MurmurHash3.stringHash(dep.model).toString.getBytes  // Use BigInt toByteArray?
@@ -196,6 +204,25 @@ object Accumulo extends Database {
 
   import Annotation._
   def annotate(ids: ConnectedVs, sem: Semantics, otherProps: Map[String, Any]): Unit = time("Accumulo:annotate") {
-    ;
+    val payload = // predefined props for annots, but there may be other props possible
+      <props>
+        <from version="hash-nr">scai.fhg.de/Abstract/23664431</from>
+        <to version="hash-nr">scai.fhg.de/Person/person-001</to>
+        <purpose>{sem.purpose}</purpose>
+        <layer>{sem.layer}</layer>
+        <position>(11, 20)</position>
+      </props>.toString
+
+    val authority = "scai.fhg.de"
+    val typ = "Abstract"
+    val rowId = s"${authority}/${typ}/${ids.fromUUID}".getBytes
+    // TODO add version-hash or version-time to rowId
+
+    val mutation = new Mutation(rowId)
+    val colVis = new ColumnVisibility()
+    val annotHash = MurmurHash3.stringHash(payload).toLong
+    mutation.put(sem.layer.getBytes, sem.purpose.getBytes, colVis, annotHash, payload.getBytes)
+    writerAnnotations.addMutation(mutation)
+    writerAnnotations.flush // TODO inefficient!
   }
 }

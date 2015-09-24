@@ -21,7 +21,7 @@ object DocElemStore extends App {
 
   store ! Init("/About.xml")
   store ! Init("/MedLineAbstracts5k.xml")
-  store ! Init("/MedLineAbstracts100k.xml")
+  //store ! Init("/MedLineAbstracts100k.xml")
 
   val inbox = Inbox.create(system)
   implicit val timeout = Timeout(120.seconds)
@@ -35,11 +35,17 @@ object DocElemStore extends App {
   // }
 
   // get result of one DocElem
-  //time {
-    inbox.send(store, GetSimple("23664431"))
-    val ResponsePayload(de) = inbox.receive(60.seconds)
-    println(de)
-  //}
+  inbox.send(store, GetSimple("23664431"))
+  val ResponsePayload(de) = inbox.receive(60.seconds)
+  println(de)
+
+  inbox.send(store, GetSimple("23664431"))
+  val ResponsePayload(de1) = inbox.receive(60.seconds)
+  println(de1)
+
+  inbox.send(store, GetSimple("23664431"))
+  val ResponsePayload(de2) = inbox.receive(60.seconds)
+  println(de2)
 
   // Get result of multiple DocElems
   // time {
@@ -58,9 +64,15 @@ object DocElemStore extends App {
   val ResponsePayload(depPerson) = inbox.receive(120.seconds)
   println("GetOrCreate -> Actor -> " + depPerson)
 
-  //inbox.send(store, Get("23664431"))
-  //val Response(de) = inbox.receive(120.seconds)
-  //de(0) ! AnnotateWith("person-001", "has_provanance")
+  def a(i: Int) = {
+    inbox.send(store, Get("23664431"))
+    val Response(de3) = inbox.receive(120.seconds)
+    de3(0) ! AnnotateWith("person-001", "has_provanance" + i)
+  }
+
+  a(1)
+  a(2)
+  a(3)
 
   system.shutdown
 
