@@ -23,7 +23,7 @@ class Gate extends Actor {
   val dest = new StompJmsDestination("/queue/docelem-store")
   val consumer = session.createConsumer(dest)
 
-  // Create router for balancing messages within the system
+  // Create a router for balancing messages within the system
   val router = {
     val routees = Vector.fill(5) {
       val r = context.actorOf(Props[AccumuloTranslator])
@@ -33,6 +33,7 @@ class Gate extends Actor {
     Router(RoundRobinRoutingLogic(), routees)
   }
 
+  // Consume and distribute messages
   def receive = {
     case Consume => {
       val message = consumer.receive  // block until getting a message
