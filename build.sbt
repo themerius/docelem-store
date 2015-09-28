@@ -20,4 +20,8 @@ libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "2.2.4" % "test"
 )
 
+// Communication with broker
+libraryDependencies += "org.apache.geronimo.specs" % "geronimo-jms_1.1_spec" % "1.1.1"
+libraryDependencies += "org.fusesource.stompjms" % "stompjms-client" % "1.19"
+
 fork in run := true

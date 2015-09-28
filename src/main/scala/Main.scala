@@ -10,6 +10,14 @@ import scala.concurrent.Await
 
 import eu.themerius.docelemstore.utils.Stats.time
 
+object DES2 extends App {
+  val system = ActorSystem("docelem-store")
+
+  val gate = system.actorOf(Props[Gate], "gate-1")
+  gate ! Consume
+
+}
+
 object DocElemStore extends App {
 
   // Start Akka
