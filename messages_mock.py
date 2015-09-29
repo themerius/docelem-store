@@ -58,6 +58,10 @@ while True:
     <corpus>
       <docelems>
         <docelem>
+          <uiid>scai.fhg.de/corpus/98dd</uiid>
+          <model>I'm a meta document element. I'm the root of a document.</model>
+        </docelem>
+        <docelem>
           <uiid>scai.fhg.de/abstract/121212</uiid>
           <model>Abstract's text</model>
         </docelem>
@@ -66,15 +70,26 @@ while True:
           <model>Other abstract's text</model>
         </docelem>
         <docelem>
-          <uiid>scai.fhg.de/abstract/141414</uiid>
-          <model>Abstract's text</model>
+          <uiid>scai.fhg.de/paragraph/04b274d8</uiid>
+          <model>Some text of a paragraph.</model>
         </docelem>
         <docelem>
-          <uiid>scai.fhg.de/abstract/151515</uiid>
-          <model>Other abstract's text</model>
+          <uiid>scai.fhg.de/prominer-entry/hs00001</uiid>
+          <model>PCTAIRE2kinase; kinase PCTAIRE2; CDK17; PCTAIRE-motif protein kinase 2</model>
         </docelem>
       </docelems>
-      <annotations>test annot</annotations>
+      <annotations>
+          <annotation layer="topology" purpose="next">
+            <from version="fff">scai.fhg.de/abstract/121212</from>
+            <to version="fff">scai.fhg.de/paragraph/04b274d8</to>
+            <!-- uiid of the root docelem (meta) -->
+            <topology>scai.fhg.de/corpus/98dd</topology> <!-- props of layer? -->
+          </annotation>
+          <annotation layer="jprominer" purpose="hgnc" position="(11, 20)">
+            <from version="fff">scai.fhg.de/abstract/121212</from>
+            <to version="fff">scai.fhg.de/prominer-entry/hs00001</to>
+          </annotation>
+      </annotations>
     </corpus>
     """)
     print "Sending to " + destination

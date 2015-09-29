@@ -11,6 +11,7 @@ import scala.util.hashing.MurmurHash3
 import scala.collection.JavaConverters._
 
 import org.apache.accumulo.core.data.Mutation
+import org.apache.accumulo.core.security.ColumnVisibility
 
 case class FoundCorpus(xmlStr: String)
 case class FoundDocelems(xml: NodeSeq)
@@ -61,7 +62,29 @@ class AccumuloTranslator extends Actor {
       storage ! WriteDocelems(dedupes, versions, mutations.size)
     }
 
-    case FoundAnnotaitons(xml) => println("Found " + xml)
+    case FoundAnnotaitons(xml) => {
+      val mutations = xml.map { annot =>
+        val from = (annot \ "from").text
+        val fromVersion = (annot \ "from" \ "@version").text
+        val to = (annot \ "to").text
+        val layer = (annot \ "@layer").text
+        val purpose = (annot \ "@purpose").text
+        val position = (annot \ "@position").text
+        //val layerProps = (annot \ layer).text
+
+        val rowId = s"$from/$fromVersion".getBytes
+        val colVis = new ColumnVisibility()
+        val annotHash = MurmurHash3.stringHash(to+layer+purpose+position).toLong
+        // TODO also include layerProps into annotation version hash
+
+        val mutation = new Mutation(rowId)
+        mutation.put(layer.getBytes, purpose.getBytes, colVis, annotHash, annot.toString.getBytes)
+        mutation
+      }
+      // Send to accumulo database actor
+      val annots = mutations.toIterable.asJava
+      storage ! WriteAnnotations(annots, mutations.size)
+    }
   }
 
 }

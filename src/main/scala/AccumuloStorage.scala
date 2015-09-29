@@ -20,6 +20,7 @@ import java.lang.Iterable
 import eu.themerius.docelemstore.utils.Stats.time
 
 case class WriteDocelems(dedupes: Iterable[Mutation], versions: Iterable[Mutation], size: Int)
+case class WriteAnnotations(annots: Iterable[Mutation], size: Int)
 
 class AccumuloStorage extends Actor {
 
@@ -41,7 +42,7 @@ class AccumuloStorage extends Actor {
   if (!ops.exists("dedupes")) {  // TODO explicit allow only one version
     ops.create("dedupes")
   }
-  if (!ops.exists("annotations")) {  // TODO explicit allow only one version
+  if (!ops.exists("annotations")) {  // TODO explicit allow only one version??? or infinite??
     ops.create("annotations")
   }
 
@@ -61,6 +62,10 @@ class AccumuloStorage extends Actor {
     case WriteDocelems(dedupes, versions, size) => time (s"Accumulo:WriteDocelems($size)") {
       writerDedupes.addMutations(dedupes)
       writerTimeMachine.addMutations(versions)
+    }
+
+    case WriteAnnotations(annots, size) => time (s"Accumulo:WriteAnnotations($size)") {
+      writerAnnotations.addMutations(annots)
     }
   }
 
