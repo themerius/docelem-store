@@ -7,6 +7,9 @@ import scala.xml.XML
 import scala.xml.NodeSeq
 import scala.util.hashing.MurmurHash3
 
+// Better to use Converters. See: http://stackoverflow.com/questions/8301947
+import scala.collection.JavaConverters._
+
 import org.apache.accumulo.core.data.Mutation
 
 case class FoundCorpus(xmlStr: String)
@@ -14,6 +17,8 @@ case class FoundDocelems(xml: NodeSeq)
 case class FoundAnnotaitons(xml: NodeSeq)
 
 class AccumuloTranslator extends Actor {
+
+  val storage = context.actorSelection("/user/accumulo-storage")
 
   def receive = {
     case FoundCorpus(xmlStr) => {
@@ -48,12 +53,12 @@ class AccumuloTranslator extends Actor {
         val mutationTM = new Mutation(authority.getBytes)
         mutationTM.put(typ.getBytes, uid.getBytes, hash.getBytes)
 
-        println(hash, authority, uid, model.text)
-
         (mutation, mutationTM)
       }
-      // TODO send to accumulo database actor
-      println(mutations)
+      // Send to accumulo database actor
+      val dedupes = mutations.map(_._1).toIterable.asJava
+      val versions = mutations.map(_._2).toIterable.asJava
+      storage ! WriteDocelems(dedupes, versions, mutations.size)
     }
 
     case FoundAnnotaitons(xml) => println("Found " + xml)

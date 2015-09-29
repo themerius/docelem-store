@@ -13,6 +13,8 @@ import eu.themerius.docelemstore.utils.Stats.time
 object DES2 extends App {
   val system = ActorSystem("docelem-store")
 
+  val storage = system.actorOf(Props[AccumuloStorage], "accumulo-storage")
+
   val gate = system.actorOf(Props[Gate], "gate-1")
   gate ! Consume
 

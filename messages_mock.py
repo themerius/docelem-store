@@ -65,6 +65,14 @@ while True:
           <uiid>scai.fhg.de/abstract/131313</uiid>
           <model>Other abstract's text</model>
         </docelem>
+        <docelem>
+          <uiid>scai.fhg.de/abstract/141414</uiid>
+          <model>Abstract's text</model>
+        </docelem>
+        <docelem>
+          <uiid>scai.fhg.de/abstract/151515</uiid>
+          <model>Other abstract's text</model>
+        </docelem>
       </docelems>
       <annotations>test annot</annotations>
     </corpus>
