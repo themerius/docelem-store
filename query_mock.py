@@ -37,6 +37,9 @@ config = StompConfig('tcp://%s:%d' % (host, port), login=user, passcode=password
 client = Stomp(config)
 client.connect(host=host)
 
+clientConsumer = Stomp(config)
+clientConsumer.connect(host=host)
+
 count = 0
 start = time.time()
 
@@ -51,47 +54,19 @@ def signal_handler(signal, frame):
 
 signal.signal(signal.SIGINT, signal_handler)
 
+# Send a query
+body = []
+body.append("scai.fhg.de/abstract/121212")
+headers = {
+    'transformation': 'TEXT',
+    'event': 'QueryDocelem',
+    'reply-to': '/topic/docstore-reply'
+}
+print "Sending to " + destination
+client.send(destination=destination, body=body[0], headers=headers)
+
+clientConsumer.subscribe(destination='/topic/docstore-reply', headers={'id': 'required-for-STOMP-1.1'})
+
 while True:
-    time.sleep(1)  # delay in secs
-    body = []
-    body.append("""
-    <corpus>
-      <docelems>
-        <docelem>
-          <uiid>scai.fhg.de/corpus/98dd</uiid>
-          <model>I'm a meta document element. I'm the root of a document.</model>
-        </docelem>
-        <docelem>
-          <uiid>scai.fhg.de/abstract/121212</uiid>
-          <model>Abstract's text</model>
-        </docelem>
-        <docelem>
-          <uiid>scai.fhg.de/abstract/131313</uiid>
-          <model>Other abstract's text</model>
-        </docelem>
-        <docelem>
-          <uiid>scai.fhg.de/paragraph/04b274d8</uiid>
-          <model>Some text of a paragraph.</model>
-        </docelem>
-        <docelem>
-          <uiid>scai.fhg.de/prominer-entry/hs00001</uiid>
-          <model>PCTAIRE2kinase; kinase PCTAIRE2; CDK17; PCTAIRE-motif protein kinase 2</model>
-        </docelem>
-      </docelems>
-      <annotations>
-          <annotation layer="topology" purpose="next">
-            <from version="fff">scai.fhg.de/abstract/121212</from>
-            <to version="fff">scai.fhg.de/paragraph/04b274d8</to>
-            <!-- uiid of the root docelem (meta) -->
-            <topology>scai.fhg.de/corpus/98dd</topology> <!-- props of layer? -->
-          </annotation>
-          <annotation layer="jprominer" purpose="hgnc" position="(11, 20)">
-            <from version="fff">scai.fhg.de/abstract/121212</from>
-            <to version="fff">scai.fhg.de/prominer-entry/hs00001</to>
-          </annotation>
-      </annotations>
-    </corpus>
-    """)
-    print "Sending to " + destination
-    client.send(destination=destination, body=body[0], headers={'transformation': 'TEXT', 'event': 'FoundCorpus'})
-    count = count + 1
+    frame = clientConsumer.receiveFrame()
+    print frame

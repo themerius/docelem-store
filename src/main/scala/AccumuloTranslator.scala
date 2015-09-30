@@ -13,9 +13,15 @@ import scala.collection.JavaConverters._
 import org.apache.accumulo.core.data.Mutation
 import org.apache.accumulo.core.security.ColumnVisibility
 
+import org.apache.accumulo.core.security.Authorizations
+import org.apache.accumulo.core.data.Range
+import org.apache.hadoop.io.Text
+
 case class FoundCorpus(xmlStr: String)
 case class FoundDocelems(xml: NodeSeq)
 case class FoundAnnotaitons(xml: NodeSeq)
+
+case class QueryDocelem(queryStr: String, replyTo: String)
 
 class AccumuloTranslator extends Actor {
 
@@ -84,6 +90,21 @@ class AccumuloTranslator extends Actor {
       // Send to accumulo database actor
       val annots = mutations.toIterable.asJava
       storage ! WriteAnnotations(annots, mutations.size)
+    }
+
+    case QueryDocelem(queryStr, replyTo) => {
+      // prepare scan
+      val (authority, typ, uid) = queryStr.split("/") match {
+        case Array(authority, typ, uid) => (authority, typ, uid)
+        case _ => ("undefiend", "undefined", "undefined")
+      }
+
+      // For fetching the hash of the newest version
+      val au = new Authorizations()
+      val os = OuterScanner(new Range(authority), new Text(typ), new Text(uid))
+      val is = InnerScanner(new Text(authority), new Text(s"${typ}/${uid}"))
+
+      storage ! FindDocelem(au, os, is, replyTo, sender())
     }
   }
 

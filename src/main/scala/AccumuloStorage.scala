@@ -14,13 +14,24 @@ import org.apache.accumulo.core.security.Authorizations
 import org.apache.accumulo.core.data.Range
 import org.apache.accumulo.core.data.Key
 
+import org.apache.hadoop.io.Text
+
 import java.io.File
 import java.lang.Iterable
 
+import scala.collection.JavaConverters._
+
 import eu.themerius.docelemstore.utils.Stats.time
 
+// For writing into database
 case class WriteDocelems(dedupes: Iterable[Mutation], versions: Iterable[Mutation], size: Int)
 case class WriteAnnotations(annots: Iterable[Mutation], size: Int)
+
+// For querying the database
+// TODO is ugly interface!
+case class OuterScanner(authority: Range, typ: Text, uid: Text)
+case class InnerScanner(authority: Text, typUid: Text)
+case class FindDocelem(auths: Authorizations, os: OuterScanner, is: InnerScanner, replyTo: String, gate: ActorRef)
 
 class AccumuloStorage extends Actor {
 
@@ -66,6 +77,59 @@ class AccumuloStorage extends Actor {
 
     case WriteAnnotations(annots, size) => time (s"Accumulo:WriteAnnotations($size)") {
       writerAnnotations.addMutations(annots)
+    }
+
+    case "FLUSH" => time ("Accumulo:FLUSH") {
+      writerDedupes.flush
+      writerTimeMachine.flush
+      writerAnnotations.flush
+    }
+
+    case FindDocelem(auths, os, is, replyTo, gate) => time (s"Accumulo:FindDocelem") {
+      val found = scanSingleDocelem(auths, os, is)
+      found.map {
+        xml => {  // TODO is too ulgy!
+          val annots = scanAnnotations(xml \\ "uiid" text, xml \ "@version" text)
+          val hack = "<corpus>" + xml.toString + annots.mkString + "</corpus>"
+          gate ! Reply(hack, replyTo)
+        }
+      }
+    }
+  }
+
+  def scanSingleDocelem(auths: Authorizations, os: OuterScanner, is: InnerScanner) = {
+    val scan = conn.createScanner("timemachine", auths)
+    scan.setRange(os.authority)
+    scan.fetchColumn(os.typ, os.uid)
+
+    for (entry <- scan.asScala) yield {
+        val key = entry.getKey()
+        val value = entry.getValue()
+
+        val scanDedupes = conn.createScanner("dedupes", auths)
+        scanDedupes.setRange(new Range(value.toString))  // ^= hash
+        scanDedupes.fetchColumn(is.authority, is.typUid)
+
+        val content = for (entryDedupes <- scanDedupes.asScala) yield {
+          entryDedupes.getValue().toString
+        }
+
+        if (content.size > 0)
+          <docelem version={value.toString}>
+            <uiid>{"scai.fhg.de/" + os.typ.toString + "/" + os.uid.toString}</uiid>
+            <model>{content}</model>
+          </docelem>
+        else
+          <docelem></docelem>
+    }
+  }
+
+  def scanAnnotations(uiid: String, version: String) = {
+    val auths = new Authorizations()
+    val scan = conn.createScanner("annotations", auths)
+      scan.setRange(new Range(uiid, uiid + "/" + version))
+    for (entry <- scan.asScala) yield {
+      entry.getValue
     }
   }
 

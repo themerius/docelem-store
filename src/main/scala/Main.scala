@@ -14,9 +14,18 @@ object DES2 extends App {
   // Start Akka system
   val system = ActorSystem("docelem-store")
   // Start one Storage actor (you should only start 1..1)
-  system.actorOf(Props[AccumuloStorage], "accumulo-storage")
+  val storage = system.actorOf(Props[AccumuloStorage], "accumulo-storage")
   // Start one Gate actor (you can start 1..n)
-  system.actorOf(Props[Gate], "gate-1") ! Consume
+  val gate = system.actorOf(Props[Gate], "gate-1")
+  gate ! Consume
+
+  // Schedule a FLUSH after 5s every 10s.
+  // Only needed for testing...
+  import system.dispatcher
+  system.scheduler.schedule(5000.milliseconds,
+    10000.milliseconds,
+    storage,
+    "FLUSH")
 }
 
 object DocElemStore extends App {

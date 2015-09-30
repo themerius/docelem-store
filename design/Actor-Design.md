@@ -69,7 +69,7 @@ Messages for Gate to handle (reading / query):
     reply-to: ...
     <query>single ID; filter for layer or purpose</query>
 
-    event: looking for corpus (replys all docelems with annotations within a topology)
+    event: looking for corpus/topology (replys all docelems with annotations within a topology)
     reply-to: ...
     <query>id of root docelem; filter for layer (this is the tag of the topology version) or purpose</query>
 

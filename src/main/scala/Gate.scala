@@ -1,5 +1,7 @@
 package eu.themerius.docelemstore
 
+import eu.themerius.docelemstore.utils.Stats.time
+
 import akka.actor.{ ActorRef, ActorSystem, Props, Actor, Inbox }
 import akka.routing.ActorRefRoutee
 import akka.routing.Router
@@ -10,6 +12,7 @@ import org.fusesource.stomp.jms._
 import javax.jms._
 
 case object Consume
+case class Reply(content: String, to: String)
 
 class Gate extends Actor {
 
@@ -45,12 +48,21 @@ class Gate extends Actor {
       if (message != null) {
         val textContent = message.asInstanceOf[TextMessage].getText
         val event = message.getStringProperty("event")
+        val replyTo = message.getJMSReplyTo
         event match {
           case "FoundCorpus" => router.route(FoundCorpus(textContent), sender())
+          case "QueryDocelem" => router.route(QueryDocelem(textContent, replyTo.toString), sender())
           case _ => println("Undefined event.")
         }
       }
     }
+
+    case Reply(content, to) => time (s"Gate:Reply(to)") {
+      val producer = session.createProducer(new StompJmsDestination(to))
+      val message = session.createTextMessage(content)
+      producer.send(message)
+    }
+
     case unknown => println("Gate got a unknown message: " + unknown)
   }
 
