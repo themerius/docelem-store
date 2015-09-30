@@ -36,8 +36,13 @@ class Gate extends Actor {
   // Consume and distribute messages
   def receive = {
     case Consume => {
-      val message = consumer.receive  // block until getting a message
-      if (message != null) {  // unwrap message and route it
+      // block until getting a message
+      // to avoid infinite blocking timout after 1s, and try again
+      val message = consumer.receive(1000)
+      // prepare next consume
+      self ! Consume
+      // unwrap message and route it
+      if (message != null) {
         val textContent = message.asInstanceOf[TextMessage].getText
         val event = message.getStringProperty("event")
         event match {
@@ -45,8 +50,8 @@ class Gate extends Actor {
           case _ => println("Undefined event.")
         }
       }
-      self ! Consume
     }
+    case unknown => println("Gate got a unknown message: " + unknown)
   }
 
 }
