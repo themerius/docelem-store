@@ -57,7 +57,9 @@ class Gate extends Actor {
       }
     }
 
-    case Reply(content, to) => time (s"Gate:Reply(to)") {
+    case Reply(content, to) => time (s"Gate:Reply($to)") {
+      // TODO: this is slowed by Consume because it may block for 1s
+      // we need a independend reply gate or something like that
       val producer = session.createProducer(new StompJmsDestination(to))
       val message = session.createTextMessage(content)
       producer.send(message)

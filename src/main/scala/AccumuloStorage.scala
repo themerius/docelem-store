@@ -28,10 +28,7 @@ case class WriteDocelems(dedupes: Iterable[Mutation], versions: Iterable[Mutatio
 case class WriteAnnotations(annots: Iterable[Mutation], size: Int)
 
 // For querying the database
-// TODO is ugly interface!
-case class OuterScanner(authority: Range, typ: Text, uid: Text)
-case class InnerScanner(authority: Text, typUid: Text)
-case class FindDocelem(auths: Authorizations, os: OuterScanner, is: InnerScanner, replyTo: String, gate: ActorRef)
+case class FindDocelem(authority: String, typ: String, uid: String, replyTo: String, gate: ActorRef)
 
 class AccumuloStorage extends Actor {
 
@@ -85,8 +82,8 @@ class AccumuloStorage extends Actor {
       writerAnnotations.flush
     }
 
-    case FindDocelem(auths, os, is, replyTo, gate) => time (s"Accumulo:FindDocelem") {
-      val found = scanSingleDocelem(auths, os, is)
+    case FindDocelem(authority, typ, uid, replyTo, gate) => time (s"Accumulo:FindDocelem") {
+      val found = scanSingleDocelem(authority, typ, uid)
       found.map {
         xml => {  // TODO is too ulgy!
           val annots = scanAnnotations(xml \\ "uiid" text, xml \ "@version" text)
@@ -97,18 +94,19 @@ class AccumuloStorage extends Actor {
     }
   }
 
-  def scanSingleDocelem(auths: Authorizations, os: OuterScanner, is: InnerScanner) = {
+  def scanSingleDocelem(authority: String, typ: String, uid: String) = {
+    val auths = new Authorizations()
     val scan = conn.createScanner("timemachine", auths)
-    scan.setRange(os.authority)
-    scan.fetchColumn(os.typ, os.uid)
+    scan.setRange(Range.exact(authority))
+    scan.fetchColumn(new Text(typ), new Text(uid))
 
     for (entry <- scan.asScala) yield {
         val key = entry.getKey()
         val value = entry.getValue()
 
         val scanDedupes = conn.createScanner("dedupes", auths)
-        scanDedupes.setRange(new Range(value.toString))  // ^= hash
-        scanDedupes.fetchColumn(is.authority, is.typUid)
+        scanDedupes.setRange(Range.exact(value.toString))  // ^= hash
+        scanDedupes.fetchColumn(new Text(authority), new Text(typ + "/" + uid))
 
         val content = for (entryDedupes <- scanDedupes.asScala) yield {
           entryDedupes.getValue().toString
@@ -116,7 +114,7 @@ class AccumuloStorage extends Actor {
 
         if (content.size > 0)
           <docelem version={value.toString}>
-            <uiid>{"scai.fhg.de/" + os.typ.toString + "/" + os.uid.toString}</uiid>
+            <uiid>{"scai.fhg.de/" + typ + "/" + uid}</uiid>
             <model>{content}</model>
           </docelem>
         else

@@ -50,6 +50,9 @@ def signal_handler(signal, frame):
     client.disconnect(receipt='bye')
     client.receiveFrame()
     client.close()
+    clientConsumer.disconnect(receipt='bye')
+    clientConsumer.receiveFrame()
+    clientConsumer.close()
     sys.exit(0)
 
 signal.signal(signal.SIGINT, signal_handler)
@@ -68,5 +71,11 @@ client.send(destination=destination, body=body[0], headers=headers)
 clientConsumer.subscribe(destination='/topic/docstore-reply', headers={'id': 'required-for-STOMP-1.1'})
 
 while True:
+    startReceive = time.time()
     frame = clientConsumer.receiveFrame()
+    diffReceive = time.time() - startReceive
     print frame
+    print diffReceive
+    time.sleep(1)
+    print "Sending to " + destination
+    client.send(destination=destination, body=body[0], headers=headers)

@@ -98,13 +98,8 @@ class AccumuloTranslator extends Actor {
         case Array(authority, typ, uid) => (authority, typ, uid)
         case _ => ("undefiend", "undefined", "undefined")
       }
-
       // For fetching the hash of the newest version
-      val au = new Authorizations()
-      val os = OuterScanner(new Range(authority), new Text(typ), new Text(uid))
-      val is = InnerScanner(new Text(authority), new Text(s"${typ}/${uid}"))
-
-      storage ! FindDocelem(au, os, is, replyTo, sender())
+      storage ! FindDocelem(authority, typ, uid, replyTo, sender())
     }
   }
 
