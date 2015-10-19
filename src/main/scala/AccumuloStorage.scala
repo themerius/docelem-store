@@ -28,7 +28,7 @@ case class WriteDocelems(dedupes: Iterable[Mutation], versions: Iterable[Mutatio
 case class WriteAnnotations(annots: Iterable[Mutation], size: Int)
 
 // For querying the database
-case class FindDocelem(authority: String, typ: String, uid: String, replyTo: String, gate: ActorRef)
+case class FindDocelem(authority: String, typ: String, uid: String, replyTo: String, trackingNr: String, gate: ActorRef)
 
 class AccumuloStorage extends Actor {
 
@@ -82,13 +82,13 @@ class AccumuloStorage extends Actor {
       writerAnnotations.flush
     }
 
-    case FindDocelem(authority, typ, uid, replyTo, gate) => time (s"Accumulo:FindDocelem") {
+    case FindDocelem(authority, typ, uid, replyTo, trackingNr, gate) => time (s"Accumulo:FindDocelem") {
       val found = scanSingleDocelem(authority, typ, uid)
       found.map {
         xml => {  // TODO is too ulgy!
           val annots = scanAnnotations(xml \\ "uiid" text, xml \ "@version" text)
           val hack = "<corpus>" + xml.toString + annots.mkString + "</corpus>"
-          gate ! Reply(hack, replyTo)
+          gate ! Reply(hack, replyTo, trackingNr)
         }
       }
     }

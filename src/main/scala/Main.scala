@@ -16,8 +16,7 @@ object DES2 extends App {
   // Start one Storage actor (you should only start 1..1)
   val storage = system.actorOf(Props[AccumuloStorage], "accumulo-storage")
   // Start one Gate actor (you can start 1..n)
-  val gate = system.actorOf(Props[Gate], "gate-1")
-  gate ! Consume
+  system.actorOf(Props[Gate], "gate-1")
 
   // Schedule a FLUSH after 5s every 10s.
   // Only needed for testing...

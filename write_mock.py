@@ -28,7 +28,7 @@ from stompest.sync import Stomp
 
 user = os.getenv('APOLLO_USER') or 'admin'
 password = os.getenv('APOLLO_PASSWORD') or 'password'
-host = os.getenv('APOLLO_HOST') or 'ashburner'
+host = os.getenv('APOLLO_HOST') or 'localhost'
 port = int(os.getenv('APOLLO_PORT') or 61613)
 destination = sys.argv[1:2] or ['/queue/docelem-store']
 destination = destination[0]
@@ -52,7 +52,7 @@ def signal_handler(signal, frame):
 signal.signal(signal.SIGINT, signal_handler)
 
 while True:
-    time.sleep(1)  # delay in secs
+    #time.sleep(1)  # delay in secs
     body = []
     body.append("""
     <corpus>

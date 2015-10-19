@@ -11,14 +11,20 @@ import scala.concurrent.duration._
 import org.fusesource.stomp.jms._
 import javax.jms._
 
-case object Consume
-case class Reply(content: String, to: String)
+import scala.concurrent.duration._
+import scala.concurrent.{ Future, Promise }
+import scala.concurrent.Await
+import scala.concurrent.TimeoutException
+import scala.concurrent.ExecutionContext.Implicits.global
+
+case class Consume(message: TextMessage)
+case class Reply(content: String, to: String, trackingNr: String)
 
 class Gate extends Actor {
 
   // Connect to the broker
   val factory = new StompJmsConnectionFactory
-  val brokerURI = "tcp://ashburner:61613"
+  val brokerURI = "tcp://localhost:61613"
   factory.setBrokerURI(brokerURI)
   val connection = factory.createConnection("admin", "password")
   connection.start
@@ -36,32 +42,38 @@ class Gate extends Actor {
     Router(RoundRobinRoutingLogic(), routees)
   }
 
+  // Start listening in extra "thread"
+  Future {
+    while (true) {
+      // block until getting a message
+      val message = consumer.receive
+      if (message != null) {
+        val textMessage = message.asInstanceOf[TextMessage]
+        self ! Consume(textMessage)
+      }
+    }
+  }
+
   // Consume and distribute messages
   def receive = {
-    case Consume => {
-      // block until getting a message
-      // to avoid infinite blocking timout after 1s, and try again
-      val message = consumer.receive(1000)
-      // prepare next consume
-      self ! Consume
+    case Consume(message: TextMessage) => {
       // unwrap message and route it
-      if (message != null) {
-        val textContent = message.asInstanceOf[TextMessage].getText
-        val event = message.getStringProperty("event")
-        val replyTo = message.getJMSReplyTo
-        event match {
-          case "FoundCorpus" => router.route(FoundCorpus(textContent), sender())
-          case "QueryDocelem" => router.route(QueryDocelem(textContent, replyTo.toString), sender())
-          case _ => println("Undefined event.")
-        }
+      val textContent = message.getText
+      val event = message.getStringProperty("event")
+      val replyTo = message.getJMSReplyTo
+      val trackingNr = message.getStringProperty("tracking-nr")
+      event match {
+        case "FoundCorpus" => router.route(FoundCorpus(textContent), sender())
+        case "QueryDocelem" => router.route(QueryDocelem(textContent, replyTo.toString, trackingNr), sender())
+        case _ => println("Undefined event.")
       }
     }
 
-    case Reply(content, to) => time (s"Gate:Reply($to)") {
-      // TODO: this is slowed by Consume because it may block for 1s
-      // we need a independend reply gate or something like that
-      val producer = session.createProducer(new StompJmsDestination(to))
+    case Reply(content, to, trackingNr) => time (s"Gate:Reply($to)") {
+      val destination = new StompJmsDestination(to)
+      val producer = session.createProducer(destination)
       val message = session.createTextMessage(content)
+      message.setStringProperty("tracking-nr", trackingNr)
       producer.send(message)
     }
 

@@ -21,7 +21,7 @@ case class FoundCorpus(xmlStr: String)
 case class FoundDocelems(xml: NodeSeq)
 case class FoundAnnotaitons(xml: NodeSeq)
 
-case class QueryDocelem(queryStr: String, replyTo: String)
+case class QueryDocelem(queryStr: String, replyTo: String, trackingNr: String)
 
 class AccumuloTranslator extends Actor {
 
@@ -92,14 +92,14 @@ class AccumuloTranslator extends Actor {
       storage ! WriteAnnotations(annots, mutations.size)
     }
 
-    case QueryDocelem(queryStr, replyTo) => {
+    case QueryDocelem(queryStr, replyTo, trackingNr) => {
       // prepare scan
       val (authority, typ, uid) = queryStr.split("/") match {
         case Array(authority, typ, uid) => (authority, typ, uid)
         case _ => ("undefiend", "undefined", "undefined")
       }
       // For fetching the hash of the newest version
-      storage ! FindDocelem(authority, typ, uid, replyTo, sender())
+      storage ! FindDocelem(authority, typ, uid, replyTo, trackingNr, sender())
     }
   }
 
