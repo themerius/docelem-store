@@ -21,10 +21,4 @@ project/.sbtserver
 
 *.lock
 
-src/main/resources/MedLineAbstracts100k.xml
-
-src/main/resources/MedLineAbstracts50k.xml
-
-src/main/resources/MedLineAbstracts5k.xml
-
-src/main/resources/MedLineAbstracts.xml
+old/

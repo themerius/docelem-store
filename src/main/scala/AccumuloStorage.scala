@@ -115,7 +115,7 @@ class AccumuloStorage extends Actor {
         if (content.size > 0)
           <docelem version={value.toString}>
             <uiid>{"scai.fhg.de/" + typ + "/" + uid}</uiid>
-            <model>{content}</model>
+            <model>{scala.xml.Unparsed(content.mkString(""))}</model>
           </docelem>
         else
           <docelem></docelem>
@@ -129,6 +129,10 @@ class AccumuloStorage extends Actor {
     for (entry <- scan.asScala) yield {
       entry.getValue
     }
+  }
+
+  def scanTopologyOfDocelems(authority: String, typ: String, uid: String) = {
+    Nil
   }
 
 }

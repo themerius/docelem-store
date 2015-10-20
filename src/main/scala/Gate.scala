@@ -19,18 +19,22 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 case class Consume(message: TextMessage)
 case class Reply(content: String, to: String, trackingNr: String)
+case class Accounting(event: String, query: String, trackingNr: String, unit: String)
 
 class Gate extends Actor {
 
   // Connect to the broker
   val factory = new StompJmsConnectionFactory
-  val brokerURI = "tcp://localhost:61613"
+  val brokerURI = "tcp://ashburner:61613"
   factory.setBrokerURI(brokerURI)
   val connection = factory.createConnection("admin", "password")
   connection.start
   val session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE)
-  val dest = new StompJmsDestination("/queue/docelem-store")
+  val dest = new StompJmsDestination("/queue/docElemStore")
   val consumer = session.createConsumer(dest)
+
+  val billing = new StompJmsDestination("/topic/billing")
+  val accounting = session.createProducer(billing)
 
   // Create a router for balancing messages within the system
   val router = {
@@ -61,11 +65,20 @@ class Gate extends Actor {
       val textContent = message.getText
       val event = message.getStringProperty("event")
       val replyTo = message.getJMSReplyTo
-      val trackingNr = message.getStringProperty("tracking-nr")
+      var trackingNr = message.getStringProperty("tracking-nr")
+      if (trackingNr == null) trackingNr = ""
       event match {
-        case "FoundCorpus" => router.route(FoundCorpus(textContent), sender())
-        case "QueryDocelem" => router.route(QueryDocelem(textContent, replyTo.toString, trackingNr), sender())
-        case _ => println("Undefined event.")
+        case "FoundCorpus" => {
+          router.route(FoundCorpus(textContent), sender())
+          self ! Accounting(event, "", trackingNr, "1 corpus")
+        }
+        case "QueryDocelem" => {
+          router.route(QueryDocelem(textContent, replyTo.toString, trackingNr), sender())
+          self ! Accounting(event, textContent, trackingNr, "1 query")
+        }
+        case _ => {
+          println("Undefined event.")
+        }
       }
     }
 
@@ -75,6 +88,16 @@ class Gate extends Actor {
       val message = session.createTextMessage(content)
       message.setStringProperty("tracking-nr", trackingNr)
       producer.send(message)
+    }
+
+    case Accounting(event, query, trackingNr, unit) => {
+      val message = session.createTextMessage(query)
+      message.setStringProperty("event", event)
+      message.setStringProperty("agent", "docelem-store")
+      message.setStringProperty("tracking-nr", trackingNr)
+      message.setJMSTimestamp(System.currentTimeMillis)
+      message.setStringProperty("unit", unit)
+      accounting.send(message)
     }
 
     case unknown => println("Gate got a unknown message: " + unknown)

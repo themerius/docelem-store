@@ -46,8 +46,9 @@ class AccumuloTranslator extends Actor {
           case Array(authority, typ, uid) => (authority, typ, uid)
           case _ => ("undefiend", "undefined", "undefined")
         }
-        val model = docelem \\ "model"
-        val hash = MurmurHash3.stringHash(model.text).toString  // Use BigInt toByteArray?
+        // Preserve also the models inner xml strucutre
+        val model = (docelem \\ "model").toString.replace("<model>", "").replace("</model>", "")
+        val hash = MurmurHash3.stringHash(model).toString  // Use BigInt toByteArray?
         val typeUid = s"${typ}/${uid}"
 
         // Optional:
@@ -55,7 +56,7 @@ class AccumuloTranslator extends Actor {
         // val timestamp = System.currentTimeMillis()
 
         val mutation = new Mutation(hash.getBytes)  // hash equals row id
-        mutation.put(authority.getBytes, typeUid.getBytes, model.text.getBytes)
+        mutation.put(authority.getBytes, typeUid.getBytes, model.getBytes)
 
         val mutationTM = new Mutation(authority.getBytes)
         mutationTM.put(typ.getBytes, uid.getBytes, hash.getBytes)
