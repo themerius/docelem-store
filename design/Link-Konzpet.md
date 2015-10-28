@@ -4,7 +4,7 @@
    (normaler Link ins Internet/URI/URL)
 2. Internal Link
    (Wiki-ähnlicher Link, innerhalb der DocElems die im  Systems verfügbar sind)
-3. Deep Link
+3. Deep Link (Query-Lang ist JavaScript? (Properties sind JSON?))
    Beziehen sich auch auf Dinge innerhalb des Systems.
    Verweisen jedoch auf Content von anderen Docelems
    (Also ein Query an das andere DocElem).
@@ -33,3 +33,17 @@ Position gezeichnet werden soll).
 
 Vorteil wäre, man ist flexibler. Denn man könnte z.B. dem Dokument sagen,
 dass alle Gewichtsmaßeinheiten auf Kilogramm umgerechnet werden sollen...
+
+# Annotationen und Properties
+
+Im Prinzip kann man in den Annotations-Informationen (from, to, etc.)
+auch Properties bzw. Attribute ablegen.
+Das heißt dass Annotationen Properties mitbringen.
+Im essentiellen entsprechen Properties den Annotationen.
+
+Wenn ein Dokument-Element einen Deep-Link enthält,
+muss die Modelllaufzeit eines anderen Dokument-Elements mit einem
+Query befragt werden.
+Zur besseren Performance und um nicht von der Verfügbarkeit der
+Modelllaufzeit abhänig zu sein, ist es sinnvoll diese Query+Antwort dann als
+Annotation abzulegen (Cache).

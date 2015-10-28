@@ -1,6 +1,6 @@
 name := """docelem-store"""
 
-version := "1.0"
+version := "0.1.0"
 
 scalaVersion := "2.11.6"
 
@@ -19,3 +19,6 @@ libraryDependencies += "org.apache.geronimo.specs" % "geronimo-jms_1.1_spec" % "
 libraryDependencies += "org.fusesource.stompjms" % "stompjms-client" % "1.19"
 
 fork in run := true
+
+// Bring the system property to the forked Java VM
+javaOptions in run += s"-Dconfig.file=${System.getProperty("config.file")}"

@@ -17,23 +17,31 @@ import scala.concurrent.Await
 import scala.concurrent.TimeoutException
 import scala.concurrent.ExecutionContext.Implicits.global
 
+import com.typesafe.config.ConfigFactory
+
 case class Consume(message: TextMessage)
 case class Reply(content: String, to: String, trackingNr: String)
 case class Accounting(event: String, query: String, trackingNr: String, unit: String)
 
 class Gate extends Actor {
 
+  val conf = ConfigFactory.load
+  val brokerUri = conf.getString("docelem-store.broker.uri")
+  val brokerUsr = conf.getString("docelem-store.broker.usr")
+  val brokerPwd = conf.getString("docelem-store.broker.pwd")
+  val brokerQueue = conf.getString("docelem-store.broker.queue")
+  val brokerBilling = conf.getString("docelem-store.broker.billing")
+
   // Connect to the broker
   val factory = new StompJmsConnectionFactory
-  val brokerURI = "tcp://ashburner:61613"
-  factory.setBrokerURI(brokerURI)
-  val connection = factory.createConnection("admin", "password")
+  factory.setBrokerURI(brokerUri)
+  val connection = factory.createConnection(brokerUsr, brokerPwd)
   connection.start
   val session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE)
-  val dest = new StompJmsDestination("/queue/docElemStore")
+  val dest = new StompJmsDestination(brokerQueue)
   val consumer = session.createConsumer(dest)
 
-  val billing = new StompJmsDestination("/topic/billing")
+  val billing = new StompJmsDestination(brokerBilling)
   val accounting = session.createProducer(billing)
 
   // Create a router for balancing messages within the system

@@ -28,7 +28,7 @@ from stompest.sync import Stomp
 
 user = os.getenv('APOLLO_USER') or 'admin'
 password = os.getenv('APOLLO_PASSWORD') or 'password'
-host = os.getenv('APOLLO_HOST') or 'localhost'
+host = os.getenv('APOLLO_HOST') or 'ashburner'
 port = int(os.getenv('APOLLO_PORT') or 61613)
 destination = sys.argv[1:2] or ['/queue/docelem-store']
 destination = destination[0]

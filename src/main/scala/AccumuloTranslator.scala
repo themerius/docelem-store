@@ -81,11 +81,13 @@ class AccumuloTranslator extends Actor {
 
         val rowId = s"$from/$fromVersion".getBytes
         val colVis = new ColumnVisibility()
-        val annotHash = MurmurHash3.stringHash(to+layer+purpose+position).toLong
+        val annotHash = MurmurHash3.stringHash(to+layer+purpose+position).toString
         // TODO also include layerProps into annotation version hash
 
+        val purposeHash = s"$purpose#$annotHash"
+
         val mutation = new Mutation(rowId)
-        mutation.put(layer.getBytes, purpose.getBytes, colVis, annotHash, annot.toString.getBytes)
+        mutation.put(layer.getBytes, purposeHash.getBytes, colVis, annot.toString.getBytes)
         mutation
       }
       // Send to accumulo database actor

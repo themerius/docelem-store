@@ -21,6 +21,8 @@ import java.lang.Iterable
 
 import scala.collection.JavaConverters._
 
+import com.typesafe.config.ConfigFactory
+
 import eu.themerius.docelemstore.utils.Stats.time
 
 // For writing into database
@@ -32,15 +34,26 @@ case class FindDocelem(authority: String, typ: String, uid: String, replyTo: Str
 
 class AccumuloStorage extends Actor {
 
+  val conf = ConfigFactory.load
+
+  val instanceName = conf.getString("docelem-store.storage.accumulo.instanceName")
+  val zooServers = conf.getString("docelem-store.storage.accumulo.zooServers")
+  val user = conf.getString("docelem-store.storage.accumulo.user")
+  val pwd = conf.getString("docelem-store.storage.accumulo.pwd")
+
   // START embedded instance
-  val dict = new File("/tmp/accumulo-mini-cluster")
-  val accumulo = new MiniAccumuloCluster(dict, "test")
-  accumulo.start
-  val inst = new ZooKeeperInstance(accumulo.getInstanceName, accumulo.getZooKeepers)
-  println("Started embedded Accumulo instance.")
+  val inst = if (conf.getBoolean("docelem-store.storage.accumulo.embedded")) {
+    val dict = new File("/tmp/accumulo-mini-cluster")
+    val accumulo = new MiniAccumuloCluster(dict, instanceName)
+    accumulo.start
+    println("Started embedded Accumulo instance.")
+    new ZooKeeperInstance(accumulo.getInstanceName, accumulo.getZooKeepers)
+  } else {
+    new ZooKeeperInstance(instanceName, zooServers)
+  }
 
   // CONNECT to instance
-  val conn = inst.getConnector("root", new PasswordToken("test"))
+  val conn = inst.getConnector(user, new PasswordToken(pwd))
 
   // CREATE tables
   val ops = conn.tableOperations()
@@ -50,8 +63,15 @@ class AccumuloStorage extends Actor {
   if (!ops.exists("dedupes")) {  // TODO explicit allow only one version
     ops.create("dedupes")
   }
-  if (!ops.exists("annotations")) {  // TODO explicit allow only one version??? or infinite??
+  if (!ops.exists("annotations")) {
     ops.create("annotations")
+    // Keep all versions (Accumulo Book, p.117)
+    // ops.removeProperty("annotations", "table.iterator.majc.vers.opt.maxVersions")
+    // ops.removeProperty("annotations", "table.iterator.minc.vers.opt.maxVersions")
+    // ops.removeProperty("annotations", "table.iterator.scan.vers.opt.maxVersions")
+    // ops.setProperty("annotations", "table.iterator.majc.vers.opt.maxVersions", "1000")
+    // ops.setProperty("annotations", "table.iterator.minc.vers.opt.maxVersions", "1000")
+    // ops.setProperty("annotations", "table.iterator.scan.vers.opt.maxVersions", "1000")
   }
 
   // GRANT permissions
@@ -125,7 +145,7 @@ class AccumuloStorage extends Actor {
   def scanAnnotations(uiid: String, version: String) = {
     val auths = new Authorizations()
     val scan = conn.createScanner("annotations", auths)
-      scan.setRange(new Range(uiid, uiid + "/" + version))
+    scan.setRange(new Range(uiid, uiid + "/" + version))
     for (entry <- scan.asScala) yield {
       entry.getValue
     }
