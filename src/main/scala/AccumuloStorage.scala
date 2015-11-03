@@ -134,7 +134,7 @@ class AccumuloStorage extends Actor {
 
         if (content.size > 0)
           <docelem version={value.toString}>
-            <uiid>{"scai.fhg.de/" + typ + "/" + uid}</uiid>
+            <uiid>{authority + "/" + typ + "/" + uid}</uiid>
             <model>{scala.xml.Unparsed(content.mkString(""))}</model>
           </docelem>
         else

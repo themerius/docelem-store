@@ -1,6 +1,6 @@
 # docelem-store
 
-## Connecting
+## Running
 
 To start this service you need a running broker like `Apache Apollo`.
 
@@ -14,3 +14,7 @@ Start with customized config:
 
 Note: You override single config parameters from reference.conf
 in your application.conf supplied by the system property.
+
+## Build fat jar
+
+    ./activator assembly

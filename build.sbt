@@ -1,6 +1,6 @@
 name := """docelem-store"""
 
-version := "0.1.0"
+version := "0.1.1-SNAPSHOT"
 
 scalaVersion := "2.11.6"
 
@@ -22,3 +22,9 @@ fork in run := true
 
 // Bring the system property to the forked Java VM
 javaOptions in run += s"-Dconfig.file=${System.getProperty("config.file")}"
+
+// Avoid assembly errors
+assemblyMergeStrategy in assembly := {
+  case PathList("META-INF", "MANIFEST.MF") => MergeStrategy.discard
+  case x => MergeStrategy.last
+}
