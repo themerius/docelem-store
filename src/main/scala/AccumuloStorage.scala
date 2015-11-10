@@ -56,7 +56,11 @@ class AccumuloStorage extends Actor {
   }
 
   // CONNECT to instance
-  val conn = inst.getConnector(user, new PasswordToken(pwd))
+  val conn = if (conf.getBoolean("docelem-store.storage.accumulo.embedded")) {
+    inst.getConnector(user, new PasswordToken(instanceName))
+  } else {
+    inst.getConnector(user, new PasswordToken(pwd))
+  }
 
   // CREATE tables
   val ops = conn.tableOperations()

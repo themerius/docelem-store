@@ -121,7 +121,7 @@ class AccumuloTranslator extends Actor {
     }
 
     case QueryAnnotationIndex(queryStr, replyTo, trackingNr) => {
-      val searchedUiids = queryStr.split(";")
+      val searchedUiids = queryStr.split(" ")
       storage ! DiscoverDocelemsWithAnnotations(searchedUiids, replyTo, trackingNr, sender())
     }
   }

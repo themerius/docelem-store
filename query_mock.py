@@ -65,7 +65,7 @@ signal.signal(signal.SIGINT, signal_handler)
 #     'reply-to': '/topic/docstore-reply'
 # }
 
-body = "scai.fhg.de/prominer-entry/hs00001;scai.fhg.de/prominer-entry/hs00002"
+body = "scai.fhg.de/prominer-entry/hs00001 scai.fhg.de/prominer-entry/hs00002"
 headers = {
     'transformation': 'TEXT',
     'event': 'QueryAnnotationIndex',
