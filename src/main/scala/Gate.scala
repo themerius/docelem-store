@@ -84,6 +84,10 @@ class Gate extends Actor {
           router.route(QueryDocelem(textContent, replyTo.toString, trackingNr), sender())
           self ! Accounting(event, textContent, trackingNr, "1 query")
         }
+        case "QueryAnnotationIndex" => {
+          router.route(QueryAnnotationIndex(textContent, replyTo.toString, trackingNr), sender())
+          self ! Accounting(event, textContent, trackingNr, "1 query")
+        }
         case _ => {
           println("Undefined event.")
         }

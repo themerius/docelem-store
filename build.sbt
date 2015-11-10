@@ -1,6 +1,6 @@
 name := """docelem-store"""
 
-version := "0.1.1-SNAPSHOT"
+version := "0.2.0-SNAPSHOT"
 
 scalaVersion := "2.11.6"
 
@@ -26,5 +26,6 @@ javaOptions in run += s"-Dconfig.file=${System.getProperty("config.file")}"
 // Avoid assembly errors
 assemblyMergeStrategy in assembly := {
   case PathList("META-INF", "MANIFEST.MF") => MergeStrategy.discard
+  case "reference.conf" => MergeStrategy.concat
   case x => MergeStrategy.last
 }

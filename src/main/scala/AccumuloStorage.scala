@@ -13,11 +13,14 @@ import org.apache.accumulo.core.client.BatchWriterConfig
 import org.apache.accumulo.core.security.Authorizations
 import org.apache.accumulo.core.data.Range
 import org.apache.accumulo.core.data.Key
+import org.apache.accumulo.core.client.IteratorSetting
+import org.apache.accumulo.core.iterators.user.IntersectingIterator
 
 import org.apache.hadoop.io.Text
 
 import java.io.File
 import java.lang.Iterable
+import java.util.Collections
 
 import scala.collection.JavaConverters._
 
@@ -27,11 +30,11 @@ import eu.themerius.docelemstore.utils.Stats.time
 
 // For writing into database
 case class WriteDocelems(dedupes: Iterable[Mutation], versions: Iterable[Mutation], size: Int)
-case class WriteAnnotations(annots: Iterable[Mutation], size: Int)
+case class WriteAnnotations(annots: Iterable[Mutation], index: Iterable[Mutation], size: Int)
 
 // For querying the database
 case class FindDocelem(authority: String, typ: String, uid: String, replyTo: String, trackingNr: String, gate: ActorRef)
-
+case class DiscoverDocelemsWithAnnotations(annotUiids: Seq[String], replyTo: String, trackingNr: String, gate: ActorRef)
 class AccumuloStorage extends Actor {
 
   val conf = ConfigFactory.load
@@ -57,21 +60,30 @@ class AccumuloStorage extends Actor {
 
   // CREATE tables
   val ops = conn.tableOperations()
-  if (!ops.exists("timemachine")) {  // TODO allow infinite versions
+  if (!ops.exists("timemachine")) {
     ops.create("timemachine")
-  }
-  if (!ops.exists("dedupes")) {  // TODO explicit allow only one version
-    ops.create("dedupes")
-  }
-  if (!ops.exists("annotations")) {
-    ops.create("annotations")
-    // Keep all versions (Accumulo Book, p.117)
-    // ops.removeProperty("annotations", "table.iterator.majc.vers.opt.maxVersions")
-    // ops.removeProperty("annotations", "table.iterator.minc.vers.opt.maxVersions")
-    // ops.removeProperty("annotations", "table.iterator.scan.vers.opt.maxVersions")
+    // -schema-> authority : type : uid, hash
+    // allow infinite versions (Accumulo Book, p.117)
+    ops.removeProperty("timemachine", "table.iterator.majc.vers.opt.maxVersions")
+    ops.removeProperty("timemachine", "table.iterator.minc.vers.opt.maxVersions")
+    ops.removeProperty("timemachine", "table.iterator.scan.vers.opt.maxVersions")
     // ops.setProperty("annotations", "table.iterator.majc.vers.opt.maxVersions", "1000")
     // ops.setProperty("annotations", "table.iterator.minc.vers.opt.maxVersions", "1000")
     // ops.setProperty("annotations", "table.iterator.scan.vers.opt.maxVersions", "1000")
+  }
+  if (!ops.exists("dedupes")) {
+    ops.create("dedupes")
+    // -schema-> hash : authority : type/uid, model payload as xml
+  }
+  if (!ops.exists("annotations")) {
+    ops.create("annotations")
+    // -schema-> from/fromVersion : layer : purposeHash, annotation payload as xml
+  }
+  if (!ops.exists("annotations_index")) {
+    ops.create("annotations_index")
+    // -schema-> layer as shardID : to : from/fromVersion, annotation payload as xml
+    // -schema-> to : layer : from/fromVersion, annotation payload as xml
+    // -schema-> payloadHash : to : from, annotation payload as xml  # payloadHash contains only layer/purpose/..? so that more (similar) annotations are grouped
   }
 
   // GRANT permissions
@@ -85,21 +97,25 @@ class AccumuloStorage extends Actor {
   val writerTimeMachine = conn.createBatchWriter("timemachine", config)
   val writerDedupes = conn.createBatchWriter("dedupes", config)
   val writerAnnotations = conn.createBatchWriter("annotations", config)
+  val writerAnnotationsIndex = conn.createBatchWriter("annotations_index", config)
 
   def receive = {
+
     case WriteDocelems(dedupes, versions, size) => time (s"Accumulo:WriteDocelems($size)") {
       writerDedupes.addMutations(dedupes)
       writerTimeMachine.addMutations(versions)
     }
 
-    case WriteAnnotations(annots, size) => time (s"Accumulo:WriteAnnotations($size)") {
+    case WriteAnnotations(annots, index, size) => time (s"Accumulo:WriteAnnotations($size)") {
       writerAnnotations.addMutations(annots)
+      writerAnnotationsIndex.addMutations(index)
     }
 
     case "FLUSH" => time ("Accumulo:FLUSH") {
       writerDedupes.flush
       writerTimeMachine.flush
       writerAnnotations.flush
+      writerAnnotationsIndex.flush
     }
 
     case FindDocelem(authority, typ, uid, replyTo, trackingNr, gate) => time (s"Accumulo:FindDocelem") {
@@ -112,6 +128,12 @@ class AccumuloStorage extends Actor {
         }
       }
     }
+
+    case DiscoverDocelemsWithAnnotations(annotations, replyTo, trackingNr, gate) => time (s"Accumulo:DiscoverDocelemsWithAnnotations") {
+      val found = scanAnnotationsIndex(annotations)
+      gate ! Reply(found.mkString(";"), replyTo, trackingNr)
+    }
+
   }
 
   def scanSingleDocelem(authority: String, typ: String, uid: String) = {
@@ -148,6 +170,28 @@ class AccumuloStorage extends Actor {
     scan.setRange(new Range(uiid, uiid + "/" + version))
     for (entry <- scan.asScala) yield {
       entry.getValue
+    }
+  }
+
+  def scanAnnotationsIndex(uiids: Seq[String]) = {
+    val tableName = "annotations_index"
+    val authorizations = new Authorizations()
+    val numQueryThreads = 3
+    val bs = conn.createBatchScanner(tableName, authorizations, numQueryThreads)
+
+    val terms = uiids.map(uiid => new Text(uiid)).toArray
+
+    val priority = 20
+    val name = "ii"
+    val iteratorClass = classOf[IntersectingIterator]
+    val ii = new IteratorSetting(priority, name, iteratorClass)
+    IntersectingIterator.setColumnFamilies(ii, terms)  // side effect!
+
+    bs.addScanIterator(ii)
+    bs.setRanges(Collections.singleton(new Range()))  // all ranges
+
+    for (entry <- bs.asScala) yield {
+      entry.getKey.getColumnQualifier.toString
     }
   }
 

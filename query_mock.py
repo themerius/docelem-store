@@ -30,7 +30,7 @@ user = os.getenv('APOLLO_USER') or 'admin'
 password = os.getenv('APOLLO_PASSWORD') or 'password'
 host = os.getenv('APOLLO_HOST') or 'ashburner'
 port = int(os.getenv('APOLLO_PORT') or 61613)
-destination = sys.argv[1:2] or ['/queue/docelem-store']
+destination = sys.argv[1:2] or ['/queue/docelem-store.dev']
 destination = destination[0]
 
 config = StompConfig('tcp://%s:%d' % (host, port), login=user, passcode=password, version='1.1')
@@ -58,15 +58,22 @@ def signal_handler(signal, frame):
 signal.signal(signal.SIGINT, signal_handler)
 
 # Send a query
-body = []
-body.append("scai.fhg.de/abstract/121212")
+# body = "scai.fhg.de/abstract/121212"
+# headers = {
+#     'transformation': 'TEXT',
+#     'event': 'QueryDocelem',
+#     'reply-to': '/topic/docstore-reply'
+# }
+
+body = "scai.fhg.de/prominer-entry/hs00001;scai.fhg.de/prominer-entry/hs00002"
 headers = {
     'transformation': 'TEXT',
-    'event': 'QueryDocelem',
+    'event': 'QueryAnnotationIndex',
     'reply-to': '/topic/docstore-reply'
 }
+
 print "Sending to " + destination
-client.send(destination=destination, body=body[0], headers=headers)
+client.send(destination=destination, body=body, headers=headers)
 
 clientConsumer.subscribe(destination='/topic/docstore-reply', headers={'id': 'required-for-STOMP-1.1'})
 
@@ -78,4 +85,4 @@ while True:
     print diffReceive
     time.sleep(1)
     print "Sending to " + destination
-    client.send(destination=destination, body=body[0], headers=headers)
+    client.send(destination=destination, body=body, headers=headers)

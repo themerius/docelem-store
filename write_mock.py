@@ -30,7 +30,7 @@ user = os.getenv('APOLLO_USER') or 'admin'
 password = os.getenv('APOLLO_PASSWORD') or 'password'
 host = os.getenv('APOLLO_HOST') or 'ashburner'
 port = int(os.getenv('APOLLO_PORT') or 61613)
-destination = sys.argv[1:2] or ['/queue/docelem-store']
+destination = sys.argv[1:2] or ['/queue/docelem-store.dev']
 destination = destination[0]
 
 config = StompConfig('tcp://%s:%d' % (host, port), login=user, passcode=password, version='1.1')
@@ -52,7 +52,7 @@ def signal_handler(signal, frame):
 signal.signal(signal.SIGINT, signal_handler)
 
 while True:
-    #time.sleep(1)  # delay in secs
+    time.sleep(1)  # delay in secs
     body = []
     body.append("""
     <corpus>
@@ -77,6 +77,10 @@ while True:
           <uiid>scai.fhg.de/prominer-entry/hs00001</uiid>
           <model>PCTAIRE2kinase; kinase PCTAIRE2; CDK17; PCTAIRE-motif protein kinase 2</model>
         </docelem>
+        <docelem>
+          <uiid>scai.fhg.de/prominer-entry/hs00002</uiid>
+          <model>cdk17</model>
+        </docelem>
       </docelems>
       <annotations>
           <annotation layer="topology" purpose="next">
@@ -88,6 +92,10 @@ while True:
           <annotation layer="jprominer" purpose="hgnc" position="(11, 20)">
             <from version="1870594422">scai.fhg.de/abstract/121212</from>
             <to version="fff">scai.fhg.de/prominer-entry/hs00001</to>
+          </annotation>
+          <annotation layer="jprominer" purpose="hgnc" position="(11, 20)">
+            <from version="1870594422">scai.fhg.de/abstract/121212</from>
+            <to version="fff">scai.fhg.de/prominer-entry/hs00002</to>
           </annotation>
       </annotations>
     </corpus>

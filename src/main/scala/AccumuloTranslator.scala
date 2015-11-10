@@ -22,6 +22,7 @@ case class FoundDocelems(xml: NodeSeq)
 case class FoundAnnotaitons(xml: NodeSeq)
 
 case class QueryDocelem(queryStr: String, replyTo: String, trackingNr: String)
+case class QueryAnnotationIndex(queryStr: String, replyTo: String, trackingNr: String)
 
 class AccumuloTranslator extends Actor {
 
@@ -90,9 +91,23 @@ class AccumuloTranslator extends Actor {
         mutation.put(layer.getBytes, purposeHash.getBytes, colVis, annot.toString.getBytes)
         mutation
       }
+
+      val mutationsIndex = xml.map { annot =>
+        val from = (annot \ "from").text
+        val to = (annot \ "to").text
+        val layer = (annot \ "@layer").text
+
+        val rowId = layer.getBytes
+        val colVis = new ColumnVisibility()
+
+        val mutation = new Mutation(rowId)
+        mutation.put(to.getBytes, s"$from".getBytes, colVis, "".getBytes)
+        mutation
+      }
       // Send to accumulo database actor
       val annots = mutations.toIterable.asJava
-      storage ! WriteAnnotations(annots, mutations.size)
+      val index = mutationsIndex.toIterable.asJava
+      storage ! WriteAnnotations(annots, index, mutations.size)
     }
 
     case QueryDocelem(queryStr, replyTo, trackingNr) => {
@@ -103,6 +118,11 @@ class AccumuloTranslator extends Actor {
       }
       // For fetching the hash of the newest version
       storage ! FindDocelem(authority, typ, uid, replyTo, trackingNr, sender())
+    }
+
+    case QueryAnnotationIndex(queryStr, replyTo, trackingNr) => {
+      val searchedUiids = queryStr.split(";")
+      storage ! DiscoverDocelemsWithAnnotations(searchedUiids, replyTo, trackingNr, sender())
     }
   }
 
