@@ -96,12 +96,14 @@ class AccumuloTranslator extends Actor {
         val from = (annot \ "from").text
         val to = (annot \ "to").text
         val layer = (annot \ "@layer").text
+        val purpose = (annot \ "@purpose").text
 
-        val rowId = layer.getBytes
+        val rowId = "".getBytes  // TODO / FIX: should be layer, but currenlty ther is a problem with scanning+intersection of distinct ranges. So place all in the same row, for now.
         val colVis = new ColumnVisibility()
 
         val mutation = new Mutation(rowId)
-        mutation.put(to.getBytes, s"$from".getBytes, colVis, "".getBytes)
+        mutation.put(to.getBytes, from.getBytes, colVis, "".getBytes)
+        mutation.put(s"${purpose}://${to}".getBytes, from.getBytes, colVis, "".getBytes)
         mutation
       }
       // Send to accumulo database actor
@@ -121,8 +123,10 @@ class AccumuloTranslator extends Actor {
     }
 
     case QueryAnnotationIndex(queryStr, replyTo, trackingNr) => {
-      val searchedUiids = queryStr.split(" ")
-      storage ! DiscoverDocelemsWithAnnotations(searchedUiids, replyTo, trackingNr, sender())
+      val xml = scala.xml.XML.loadString(queryStr)
+      val searchedLayers = (xml \ "layer").map(_.text).map(_.trim)
+      val searchedUiids = (xml \ "annot").map(_.text).map(_.trim)
+      storage ! DiscoverDocelemsWithAnnotations(searchedLayers, searchedUiids, replyTo, trackingNr, sender())
     }
   }
 

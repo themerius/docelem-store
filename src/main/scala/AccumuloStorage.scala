@@ -34,7 +34,7 @@ case class WriteAnnotations(annots: Iterable[Mutation], index: Iterable[Mutation
 
 // For querying the database
 case class FindDocelem(authority: String, typ: String, uid: String, replyTo: String, trackingNr: String, gate: ActorRef)
-case class DiscoverDocelemsWithAnnotations(annotUiids: Seq[String], replyTo: String, trackingNr: String, gate: ActorRef)
+case class DiscoverDocelemsWithAnnotations(searchedLayers: Seq[String], annotUiids: Seq[String], replyTo: String, trackingNr: String, gate: ActorRef)
 class AccumuloStorage extends Actor {
 
   val conf = ConfigFactory.load
@@ -83,8 +83,8 @@ class AccumuloStorage extends Actor {
     ops.create("annotations")
     // -schema-> from/fromVersion : layer : purposeHash, annotation payload as xml
   }
-  if (!ops.exists("annotations_index")) {
-    ops.create("annotations_index")
+  if (!ops.exists("annotations_index_v2")) {
+    ops.create("annotations_index_v2")
     // -schema-> layer as shardID : to : from/fromVersion, annotation payload as xml
     // -schema-> to : layer : from/fromVersion, annotation payload as xml
     // -schema-> payloadHash : to : from, annotation payload as xml  # payloadHash contains only layer/purpose/..? so that more (similar) annotations are grouped
@@ -101,7 +101,7 @@ class AccumuloStorage extends Actor {
   val writerTimeMachine = conn.createBatchWriter("timemachine", config)
   val writerDedupes = conn.createBatchWriter("dedupes", config)
   val writerAnnotations = conn.createBatchWriter("annotations", config)
-  val writerAnnotationsIndex = conn.createBatchWriter("annotations_index", config)
+  val writerAnnotationsIndex = conn.createBatchWriter("annotations_index_v2", config)
 
   def receive = {
 
@@ -133,8 +133,8 @@ class AccumuloStorage extends Actor {
       }
     }
 
-    case DiscoverDocelemsWithAnnotations(annotations, replyTo, trackingNr, gate) => time (s"Accumulo:DiscoverDocelemsWithAnnotations") {
-      val found = scanAnnotationsIndex(annotations)
+    case DiscoverDocelemsWithAnnotations(layers, annotations, replyTo, trackingNr, gate) => time (s"Accumulo:DiscoverDocelemsWithAnnotations") {
+      val found = scanAnnotationsIndex(layers, annotations)
       gate ! Reply(found.mkString(";"), replyTo, trackingNr)
     }
 
@@ -177,8 +177,8 @@ class AccumuloStorage extends Actor {
     }
   }
 
-  def scanAnnotationsIndex(uiids: Seq[String]) = {
-    val tableName = "annotations_index"
+  def scanAnnotationsIndex(layers: Seq[String], uiids: Seq[String]) = {
+    val tableName = "annotations_index_v2"
     val authorizations = new Authorizations()
     val numQueryThreads = 3
     val bs = conn.createBatchScanner(tableName, authorizations, numQueryThreads)
@@ -189,12 +189,17 @@ class AccumuloStorage extends Actor {
     val name = "ii"
     val iteratorClass = classOf[IntersectingIterator]
     val ii = new IteratorSetting(priority, name, iteratorClass)
-    IntersectingIterator.setColumnFamilies(ii, terms)  // side effect!
+    IntersectingIterator.setColumnFamilies(ii, terms)  // side effect on ii!
 
     bs.addScanIterator(ii)
-    bs.setRanges(Collections.singleton(new Range()))  // all ranges
 
-    for (entry <- bs.asScala) yield {
+    if (layers.isEmpty) {
+      bs.setRanges(Collections.singleton(new Range()))  // all ranges
+    } else {
+      bs.setRanges(layers.map(Range.prefix(_)).asJava)
+    }
+
+    for (entry <- bs.asScala.take(100)) yield {
       entry.getKey.getColumnQualifier.toString
     }
   }

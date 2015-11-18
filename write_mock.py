@@ -58,44 +58,56 @@ while True:
     <corpus>
       <docelems>
         <docelem>
-          <uiid>scai.fhg.de/corpus/98dd</uiid>
+          <uiid>scai.fraunhofer.de/corpus/98dd</uiid>
           <model>I'm a meta document element. I'm the root of a document.</model>
         </docelem>
         <docelem>
-          <uiid>scai.fhg.de/abstract/121212</uiid>
+          <uiid>scai.fraunhofer.de/abstract/121212</uiid>
           <model>Abstract's text</model>
         </docelem>
         <docelem>
-          <uiid>scai.fhg.de/abstract/131313</uiid>
+          <uiid>scai.fraunhofer.de/abstract/131313</uiid>
           <model>Other abstract's text</model>
         </docelem>
         <docelem>
-          <uiid>scai.fhg.de/paragraph/04b274d8</uiid>
+          <uiid>scai.fraunhofer.de/paragraph/04b274d8</uiid>
           <model>Some text of a paragraph.</model>
         </docelem>
         <docelem>
-          <uiid>scai.fhg.de/prominer-entry/hs00001</uiid>
+          <uiid>scai.fraunhofer.de/pconcept/hs00001</uiid>
           <model>PCTAIRE2kinase; kinase PCTAIRE2; CDK17; PCTAIRE-motif protein kinase 2</model>
         </docelem>
         <docelem>
-          <uiid>scai.fhg.de/prominer-entry/hs00002</uiid>
+          <uiid>scai.fraunhofer.de/pconcept/hs00002</uiid>
           <model>cdk17</model>
         </docelem>
       </docelems>
       <annotations>
           <annotation layer="topology" purpose="next">
-            <from version="1870594422">scai.fhg.de/abstract/121212</from>
-            <to version="fff">scai.fhg.de/paragraph/04b274d8</to>
+            <from version="1870594422">scai.fraunhofer.de/abstract/121212</from>
+            <to version="fff">scai.fraunhofer.de/paragraph/04b274d8</to>
             <!-- uiid of the root docelem (meta) -->
-            <topology>scai.fhg.de/corpus/98dd</topology> <!-- props of layer? -->
+            <topology>scai.fraunhofer.de/corpus/98dd</topology> <!-- props of layer? -->
           </annotation>
-          <annotation layer="jprominer" purpose="hgnc" position="(11, 20)">
-            <from version="1870594422">scai.fhg.de/abstract/121212</from>
-            <to version="fff">scai.fhg.de/prominer-entry/hs00001</to>
+          <annotation layer="mockrun" purpose="hgnc" position="(11, 20)">
+            <from version="1870594422">scai.fraunhofer.de/abstract/121212</from>
+            <to version="fff">scai.fraunhofer.de/pconcept/hs00001</to>
           </annotation>
-          <annotation layer="jprominer" purpose="hgnc" position="(11, 20)">
-            <from version="1870594422">scai.fhg.de/abstract/121212</from>
-            <to version="fff">scai.fhg.de/prominer-entry/hs00002</to>
+          <annotation layer="mockrun" purpose="hgnc" position="(11, 20)">
+            <from version="1870594422">scai.fraunhofer.de/abstract/121212</from>
+            <to version="fff">scai.fraunhofer.de/pconcept/hs00002</to>
+          </annotation>
+          <annotation layer="mockrun" purpose="hgnc" position="(11, 20)">
+            <from version="1870594422">scai.fraunhofer.de/abstract/121212</from>
+            <to version="fff">scai.fraunhofer.de/pconcept/hs-00003</to>
+          </annotation>
+          <annotation layer="mockrun" purpose="mesh" position="(11, 20)">
+            <from version="1870594422">scai.fraunhofer.de/abstract/121212</from>
+            <to version="fff">scai.fraunhofer.de/pconcept/hs00001</to>
+          </annotation>
+          <annotation layer="mockrun-3" purpose="mesh" position="(11, 20)">
+            <from version="1870594422">scai.fraunhofer.de/abstract/121212</from>
+            <to version="fff">scai.fraunhofer.de/pconcept/hs00004</to>
           </annotation>
       </annotations>
     </corpus>
