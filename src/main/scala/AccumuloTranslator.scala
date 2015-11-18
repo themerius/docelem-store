@@ -98,7 +98,7 @@ class AccumuloTranslator extends Actor {
         val layer = (annot \ "@layer").text
         val purpose = (annot \ "@purpose").text
 
-        val rowId = "".getBytes  // TODO / FIX: should be layer, but currenlty ther is a problem with scanning+intersection of distinct ranges. So place all in the same row, for now.
+        val rowId = layer.getBytes
         val colVis = new ColumnVisibility()
 
         val mutation = new Mutation(rowId)

@@ -135,7 +135,13 @@ class AccumuloStorage extends Actor {
 
     case DiscoverDocelemsWithAnnotations(layers, annotations, replyTo, trackingNr, gate) => time (s"Accumulo:DiscoverDocelemsWithAnnotations") {
       val found = scanAnnotationsIndex(layers, annotations)
-      gate ! Reply(found.mkString(";"), replyTo, trackingNr)
+      val xml =
+      <results>{
+        found.map { uiid =>
+          <uiid>{uiid}</uiid>
+        }
+      }</results>
+      gate ! Reply(xml.toString, replyTo, trackingNr)
     }
 
   }
@@ -177,6 +183,9 @@ class AccumuloStorage extends Actor {
     }
   }
 
+  /*
+   * This will only intersect the terms within the same row!
+  */
   def scanAnnotationsIndex(layers: Seq[String], uiids: Seq[String]) = {
     val tableName = "annotations_index_v2"
     val authorizations = new Authorizations()
@@ -196,7 +205,7 @@ class AccumuloStorage extends Actor {
     if (layers.isEmpty) {
       bs.setRanges(Collections.singleton(new Range()))  // all ranges
     } else {
-      bs.setRanges(layers.map(Range.prefix(_)).asJava)
+      bs.setRanges(layers.map(Range.exact(_)).asJava)
     }
 
     for (entry <- bs.asScala.take(100)) yield {
