@@ -64,27 +64,27 @@ class AccumuloStorage extends Actor {
 
   // CREATE tables
   val ops = conn.tableOperations()
-  if (!ops.exists("timemachine")) {
-    ops.create("timemachine")
+  if (!ops.exists("timemachine_v3")) {
+    ops.create("timemachine_v3")
     // -schema-> authority : type : uid, hash
     // allow infinite versions (Accumulo Book, p.117)
-    ops.removeProperty("timemachine", "table.iterator.majc.vers.opt.maxVersions")
-    ops.removeProperty("timemachine", "table.iterator.minc.vers.opt.maxVersions")
-    ops.removeProperty("timemachine", "table.iterator.scan.vers.opt.maxVersions")
-    // ops.setProperty("annotations", "table.iterator.majc.vers.opt.maxVersions", "1000")
-    // ops.setProperty("annotations", "table.iterator.minc.vers.opt.maxVersions", "1000")
-    // ops.setProperty("annotations", "table.iterator.scan.vers.opt.maxVersions", "1000")
+    ops.removeProperty("timemachine_v3", "table.iterator.majc.vers.opt.maxVersions")
+    ops.removeProperty("timemachine_v3", "table.iterator.minc.vers.opt.maxVersions")
+    ops.removeProperty("timemachine_v3", "table.iterator.scan.vers.opt.maxVersions")
+    // ops.setProperty("annotations_v3", "table.iterator.majc.vers.opt.maxVersions", "1000")
+    // ops.setProperty("annotations_v3", "table.iterator.minc.vers.opt.maxVersions", "1000")
+    // ops.setProperty("annotations_v3", "table.iterator.scan.vers.opt.maxVersions", "1000")
   }
-  if (!ops.exists("dedupes")) {
-    ops.create("dedupes")
+  if (!ops.exists("dedupes_v3")) {
+    ops.create("dedupes_v3")
     // -schema-> hash : authority : type/uid, model payload as xml
   }
-  if (!ops.exists("annotations")) {
-    ops.create("annotations")
+  if (!ops.exists("annotations_v3")) {
+    ops.create("annotations_v3")
     // -schema-> from/fromVersion : layer : purposeHash, annotation payload as xml
   }
-  if (!ops.exists("annotations_index_v2")) {
-    ops.create("annotations_index_v2")
+  if (!ops.exists("annotations_index_v3")) {
+    ops.create("annotations_index_v3")
     // -schema-> layer as shardID : to : from/fromVersion, annotation payload as xml
     // -schema-> to : layer : from/fromVersion, annotation payload as xml
     // -schema-> payloadHash : to : from, annotation payload as xml  # payloadHash contains only layer/purpose/..? so that more (similar) annotations are grouped
@@ -98,10 +98,10 @@ class AccumuloStorage extends Actor {
   // SETUP writers
   val config = new BatchWriterConfig
   config.setMaxMemory(10000000L); // bytes available to batchwriter for buffering mutations
-  val writerTimeMachine = conn.createBatchWriter("timemachine", config)
-  val writerDedupes = conn.createBatchWriter("dedupes", config)
-  val writerAnnotations = conn.createBatchWriter("annotations", config)
-  val writerAnnotationsIndex = conn.createBatchWriter("annotations_index_v2", config)
+  val writerTimeMachine = conn.createBatchWriter("timemachine_v3", config)
+  val writerDedupes = conn.createBatchWriter("dedupes_v3", config)
+  val writerAnnotations = conn.createBatchWriter("annotations_v3", config)
+  val writerAnnotationsIndex = conn.createBatchWriter("annotations_index_v3", config)
 
   def receive = {
 
@@ -148,7 +148,7 @@ class AccumuloStorage extends Actor {
 
   def scanSingleDocelem(authority: String, typ: String, uid: String) = {
     val auths = new Authorizations()
-    val scan = conn.createScanner("timemachine", auths)
+    val scan = conn.createScanner("timemachine_v3", auths)
     scan.setRange(Range.exact(authority))
     scan.fetchColumn(new Text(typ), new Text(uid))
 
@@ -156,7 +156,7 @@ class AccumuloStorage extends Actor {
         val key = entry.getKey()
         val value = entry.getValue()
 
-        val scanDedupes = conn.createScanner("dedupes", auths)
+        val scanDedupes = conn.createScanner("dedupes_v3", auths)
         scanDedupes.setRange(Range.exact(value.toString))  // ^= hash
         scanDedupes.fetchColumn(new Text(authority), new Text(typ + "/" + uid))
 
@@ -176,7 +176,7 @@ class AccumuloStorage extends Actor {
 
   def scanAnnotations(uiid: String, version: String) = {
     val auths = new Authorizations()
-    val scan = conn.createScanner("annotations", auths)
+    val scan = conn.createScanner("annotations_v3", auths)
     scan.setRange(new Range(uiid, uiid + "/" + version))
     for (entry <- scan.asScala) yield {
       entry.getValue
@@ -187,7 +187,7 @@ class AccumuloStorage extends Actor {
    * This will only intersect the terms within the same row!
   */
   def scanAnnotationsIndex(layers: Seq[String], uiids: Seq[String]) = {
-    val tableName = "annotations_index_v2"
+    val tableName = "annotations_index_v3"
     val authorizations = new Authorizations()
     val numQueryThreads = 3
     val bs = conn.createBatchScanner(tableName, authorizations, numQueryThreads)
