@@ -11,15 +11,21 @@ import scala.concurrent.duration._
 import org.fusesource.stomp.jms._
 import javax.jms._
 
+import org.fusesource.stomp.client.Constants._
+import org.fusesource.stomp.codec.StompFrame
+import org.fusesource.stomp.client.Stomp
+
 import scala.concurrent.duration._
 import scala.concurrent.{ Future, Promise }
 import scala.concurrent.Await
 import scala.concurrent.TimeoutException
 import scala.concurrent.ExecutionContext.Implicits.global
 
+import scala.collection.JavaConverters._
+
 import com.typesafe.config.ConfigFactory
 
-case class Consume(message: TextMessage)
+case class Consume(header: Map[String, String], message: String)
 case class Reply(content: String, to: String, trackingNr: String)
 case class Accounting(event: String, query: String, trackingNr: String, unit: String)
 
@@ -38,8 +44,20 @@ class Gate extends Actor {
   val connection = factory.createConnection(brokerUsr, brokerPwd)
   connection.start
   val session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE)
-  val dest = new StompJmsDestination(brokerQueue)
-  val consumer = session.createConsumer(dest)
+
+  // Raw STOMP connection
+  val stomp = new Stomp(brokerUri)
+  stomp.setLogin(brokerUsr)
+  stomp.setPasscode(brokerPwd)
+  val consumer = stomp.connectBlocking
+
+  // Raw STOMP listen
+  val frame = new StompFrame(SUBSCRIBE)
+  frame.addHeader(DESTINATION, StompFrame.encodeHeader(brokerQueue))
+  frame.addHeader(ID, consumer.nextId)
+  val response = consumer.request(frame)
+  println(s"Raw STOMP connection listens to ${brokerQueue}.")
+
 
   val billing = new StompJmsDestination(brokerBilling)
   val accounting = session.createProducer(billing)
@@ -58,35 +76,36 @@ class Gate extends Actor {
   Future {
     while (true) {
       // block until getting a message
-      val message = consumer.receive
-      if (message != null) {
-        val textMessage = message.asInstanceOf[TextMessage]
-        self ! Consume(textMessage)
+      val frame = consumer.receive
+      if (frame.action == MESSAGE) {
+        val headerList = frame.headerList.asScala
+        val headerMap = headerList.map( x =>
+          x.getKey.toString -> x.getValue.toString
+        ).toMap
+        self ! Consume(headerMap, frame.contentAsString)
       }
     }
   }
 
   // Consume and distribute messages
   def receive = {
-    case Consume(message: TextMessage) => {
+    case Consume(header: Map[String, String], textContent: String) => {
       // unwrap message and route it
-      val textContent = message.getText
-      val event = message.getStringProperty("event")
-      val replyTo = message.getJMSReplyTo
-      var trackingNr = message.getStringProperty("tracking-nr")
-      if (trackingNr == null) trackingNr = ""
+      val event = header.getOrElse("event", "")
+      val replyTo = header.getOrElse("reply-to", "")
+      var trackingNr = header.getOrElse("tracking-nr", "")
       event match {
         case "FoundCorpus" => {
           router.route(FoundCorpus(textContent), sender())
-          self ! Accounting(event, "", trackingNr, "1 corpus")
+          //self ! Accounting(event, "", trackingNr, "1 corpus")
         }
         case "QueryDocelem" => {
           router.route(QueryDocelem(textContent, replyTo.toString, trackingNr), sender())
-          self ! Accounting(event, textContent, trackingNr, "1 query")
+          //self ! Accounting(event, textContent, trackingNr, "1 query")
         }
         case "QueryAnnotationIndex" => {
           router.route(QueryAnnotationIndex(textContent, replyTo.toString, trackingNr), sender())
-          self ! Accounting(event, textContent, trackingNr, "1 query")
+          //self ! Accounting(event, textContent, trackingNr, "1 query")
         }
         case _ => {
           println("Undefined event.")
