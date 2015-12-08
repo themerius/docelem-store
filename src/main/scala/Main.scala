@@ -28,7 +28,7 @@ object DocElemStore extends App {
   // Start one Gate actor (you can start 1..n)
   val number = conf.getInt("docelem-store.gate.number") + 1
   for (i <- 1 until number) {
-    system.actorOf(Props[Gate], s"gate-$i")
+    system.actorOf(Props[Gate], s"gate-$i") ! ReceiveFromBroker
     println(s"Starting gate-$i")
   }
 

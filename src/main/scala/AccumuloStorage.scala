@@ -37,6 +37,8 @@ case class FindDocelem(authority: String, typ: String, uid: String, replyTo: Str
 case class DiscoverDocelemsWithAnnotations(searchedLayers: Seq[String], annotUiids: Seq[String], replyTo: String, trackingNr: String, gate: ActorRef)
 class AccumuloStorage extends Actor {
 
+  println(s"Storage ${context.dispatcher}")
+
   val conf = ConfigFactory.load
 
   val instanceName = conf.getString("docelem-store.storage.accumulo.instanceName")
@@ -97,22 +99,27 @@ class AccumuloStorage extends Actor {
 
   // SETUP writers
   val config = new BatchWriterConfig
-  config.setMaxMemory(10000000L); // bytes available to batchwriter for buffering mutations
+  config.setMaxMemory(52428800L); // bytes available to batchwriter for buffering mutations
   val writerTimeMachine = conn.createBatchWriter("timemachine_v3", config)
   val writerDedupes = conn.createBatchWriter("dedupes_v3", config)
   val writerAnnotations = conn.createBatchWriter("annotations_v3", config)
   val writerAnnotationsIndex = conn.createBatchWriter("annotations_index_v3", config)
 
+  var d = 0
+  var a = 0
+
   def receive = {
 
-    case WriteDocelems(dedupes, versions, size) => time (s"Accumulo:WriteDocelems($size)") {
+    case WriteDocelems(dedupes, versions, size) => time (s"Accumulo:WriteDocelems($d)") {
       writerDedupes.addMutations(dedupes)
       writerTimeMachine.addMutations(versions)
+      d = d + 1
     }
 
-    case WriteAnnotations(annots, index, size) => time (s"Accumulo:WriteAnnotations($size)") {
+    case WriteAnnotations(annots, index, size) => time (s"Accumulo:WriteAnnotations($a)") {
       writerAnnotations.addMutations(annots)
       writerAnnotationsIndex.addMutations(index)
+      a = a + 1
     }
 
     case "FLUSH" => time ("Accumulo:FLUSH") {

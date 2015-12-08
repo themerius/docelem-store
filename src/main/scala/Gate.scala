@@ -25,11 +25,14 @@ import scala.collection.JavaConverters._
 
 import com.typesafe.config.ConfigFactory
 
+case object ReceiveFromBroker
 case class Consume(header: Map[String, String], message: String)
 case class Reply(content: String, to: String, trackingNr: String)
 case class Accounting(event: String, query: String, trackingNr: String, unit: String)
 
 class Gate extends Actor {
+
+  println(s"Gate ${context.dispatcher}")
 
   val conf = ConfigFactory.load
   val brokerUri = conf.getString("docelem-store.broker.uri")
@@ -64,7 +67,7 @@ class Gate extends Actor {
 
   // Create a router for balancing messages within the system
   val router = {
-    val routees = Vector.fill(5) {
+    val routees = Vector.fill(2) {
       val r = context.actorOf(Props[AccumuloTranslator])
       context.watch(r)
       ActorRefRoutee(r)
@@ -72,23 +75,20 @@ class Gate extends Actor {
     Router(RoundRobinRoutingLogic(), routees)
   }
 
-  // Start listening in extra "thread"
-  Future {
-    while (true) {
-      // block until getting a message
+  // Consume and distribute messages
+  def receive = {
+    case ReceiveFromBroker => {
       val frame = consumer.receive
       if (frame.action == MESSAGE) {
-        val headerList = frame.headerList.asScala
-        val headerMap = headerList.map( x =>
+        val headerMap = frame.headerList.asScala.map( x =>
           x.getKey.toString -> x.getValue.toString
         ).toMap
         self ! Consume(headerMap, frame.contentAsString)
       }
-    }
-  }
 
-  // Consume and distribute messages
-  def receive = {
+      self ! ReceiveFromBroker
+    }
+
     case Consume(header: Map[String, String], textContent: String) => {
       // unwrap message and route it
       val event = header.getOrElse("event", "")

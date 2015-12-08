@@ -26,8 +26,9 @@ case class QueryAnnotationIndex(queryStr: String, replyTo: String, trackingNr: S
 
 class AccumuloTranslator extends Actor {
 
-  //val storage = context.actorSelection("/user/accumulo-storage")
-  val storage = context.actorOf(Props[AccumuloStorage])
+  println(s"Translator ${context.dispatcher}")
+
+  val storage = context.actorSelection("/user/accumulo-storage")
 
   def receive = {
     case FoundCorpus(xmlStr) => {
