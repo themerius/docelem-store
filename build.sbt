@@ -22,8 +22,8 @@ fork in run := true
 
 // Bring the system property to the forked Java VM
 javaOptions in run += s"-Dconfig.file=${System.getProperty("config.file")}"
-javaOptions in run += "-Xmx2G"
-javaOptions in run += "-Dhawtdispatch.threads=2"
+javaOptions in run += "-Xmx4G"
+javaOptions in run += "-Dhawtdispatch.threads=4"
 
 // Avoid assembly errors
 assemblyMergeStrategy in assembly := {

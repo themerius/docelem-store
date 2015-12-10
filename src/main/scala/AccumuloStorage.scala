@@ -15,6 +15,7 @@ import org.apache.accumulo.core.data.Range
 import org.apache.accumulo.core.data.Key
 import org.apache.accumulo.core.client.IteratorSetting
 import org.apache.accumulo.core.iterators.user.IntersectingIterator
+import org.apache.accumulo.core.client.Durability
 
 import org.apache.hadoop.io.Text
 
@@ -100,6 +101,8 @@ class AccumuloStorage extends Actor {
   // SETUP writers
   val config = new BatchWriterConfig
   config.setMaxMemory(52428800L); // bytes available to batchwriter for buffering mutations
+  config.setMaxWriteThreads(8)
+  config.setDurability(Durability.NONE) // no write ahead log
   val writerTimeMachine = conn.createBatchWriter("timemachine_v3", config)
   val writerDedupes = conn.createBatchWriter("dedupes_v3", config)
   val writerAnnotations = conn.createBatchWriter("annotations_v3", config)

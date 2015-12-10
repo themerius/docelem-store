@@ -67,7 +67,7 @@ class Gate extends Actor {
 
   // Create a router for balancing messages within the system
   val router = {
-    val routees = Vector.fill(2) {
+    val routees = Vector.fill(100) {
       val r = context.actorOf(Props[AccumuloTranslator])
       context.watch(r)
       ActorRefRoutee(r)
