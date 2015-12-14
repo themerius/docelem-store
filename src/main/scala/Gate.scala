@@ -15,6 +15,10 @@ import org.fusesource.stomp.client.Constants._
 import org.fusesource.stomp.codec.StompFrame
 import org.fusesource.stomp.client.Stomp
 
+// Stomp Callbacks
+import org.fusesource.stomp.client.Callback
+import org.fusesource.stomp.client.CallbackConnection
+
 import scala.concurrent.duration._
 import scala.concurrent.{ Future, Promise }
 import scala.concurrent.Await
@@ -51,31 +55,60 @@ class Gate extends Actor {
   val stomp = new Stomp(brokerUri)
   stomp.setLogin(brokerUsr)
   stomp.setPasscode(brokerPwd)
-  val consumer = stomp.connectBlocking
 
-  // Raw STOMP listen
-  val frame = new StompFrame(SUBSCRIBE)
-  frame.addHeader(DESTINATION, StompFrame.encodeHeader(brokerQueue))
-  frame.addHeader(ID, consumer.nextId)
-  val response = consumer.request(frame)
-  println(s"Raw STOMP connection listens to ${brokerQueue}.")
+  val receiveCallback = new Callback[StompFrame]() {
+    override def onFailure(value: Throwable) {
+      println(s"Receive Failed ${value}")
+    }
 
-
-  val billing = new StompJmsDestination(brokerBilling)
-  val accounting = session.createProducer(billing)
-
-  // Receive messages from broker
-  Future {
-    while (true) {
-      val frame = consumer.receive
+    override def onSuccess(frame: StompFrame) {
       if (frame.action == MESSAGE) {
-        val headerMap = frame.headerList.asScala.map( x =>
-          x.getKey.toString -> x.getValue.toString
+        // generate a list of properties and transform it into a standard map
+        val headerMap = frame.headerList.asScala.map( entry =>
+          entry.getKey.toString -> entry.getValue.toString
         ).toMap
+        // send it to the gate actor to do further processing
         self ! Consume(headerMap, frame.contentAsString)
       }
     }
   }
+
+  stomp.connectCallback(new Callback[CallbackConnection] {
+
+    override def onFailure(value: Throwable) {
+      println(s"Connection Failed ${value}")
+    }
+
+    override def onSuccess(connection: CallbackConnection) {
+      println(s"Raw STOMP connection opened.")
+
+      // register the callback which is triggered when a messages arrives
+      connection.receive(receiveCallback)
+
+      // setup on which queue should be listened
+      connection.resume
+
+      val frame = new StompFrame(SUBSCRIBE)
+      frame.addHeader(DESTINATION, StompFrame.encodeHeader(brokerQueue))
+      frame.addHeader(ID, connection.nextId)
+
+      connection.request(frame, new Callback[StompFrame]() {
+        override def onFailure(value: Throwable) {
+          println(s"Receive Failed ${value}")
+          connection.close(null)
+        }
+
+        override def onSuccess(value: StompFrame) {
+          println(s"Raw STOMP connection listens to ${brokerQueue}.")
+        }
+      })
+    }
+
+  })
+
+
+  val billing = new StompJmsDestination(brokerBilling)
+  val accounting = session.createProducer(billing)
 
   // Create a router for balancing messages within the system
   val router = {
