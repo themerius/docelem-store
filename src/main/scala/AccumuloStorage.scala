@@ -25,6 +25,9 @@ import java.util.Collections
 
 import scala.collection.JavaConverters._
 
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+
 import com.typesafe.config.ConfigFactory
 
 import eu.themerius.docelemstore.utils.Stats.time
@@ -98,7 +101,7 @@ class AccumuloStorage extends Actor {
   val newRootAuths = new Authorizations("public")
   secOps.changeUserAuthorizations("root", newRootAuths)
 
-  // SETUP writers
+  // SETUP writers (they are threadsafe and could be shared by multiple actors)
   val config = new BatchWriterConfig
   config.setMaxMemory(52428800L); // bytes available to batchwriter for buffering mutations
   config.setMaxWriteThreads(8)
@@ -108,21 +111,29 @@ class AccumuloStorage extends Actor {
   val writerAnnotations = conn.createBatchWriter("annotations_v3", config)
   val writerAnnotationsIndex = conn.createBatchWriter("annotations_index_v3", config)
 
-  var d = 0
-  var a = 0
+  var countD = 0
+  var countA = 0
 
   def receive = {
 
-    case WriteDocelems(dedupes, versions, size) => time (s"Accumulo:WriteDocelems($d)") {
-      writerDedupes.addMutations(dedupes)
-      writerTimeMachine.addMutations(versions)
-      d = d + 1
+    case WriteDocelems(dedupes, versions, size) => {
+      Future {
+        writerDedupes.addMutations(dedupes)
+        writerTimeMachine.addMutations(versions)
+      }
+
+      if (countD % 10000 == 0) println(s"Accumulo:WriteDocelems($countD)")
+      countD = countD + 1
     }
 
-    case WriteAnnotations(annots, index, size) => time (s"Accumulo:WriteAnnotations($a)") {
-      writerAnnotations.addMutations(annots)
-      writerAnnotationsIndex.addMutations(index)
-      a = a + 1
+    case WriteAnnotations(annots, index, size) => {
+      Future {
+        writerAnnotations.addMutations(annots)
+        writerAnnotationsIndex.addMutations(index)
+      }
+
+      if (countA % 10000 == 0) println(s"Accumulo:WriteAnnotations($countA)")
+      countA = countA + 1
     }
 
     case "FLUSH" => time ("Accumulo:FLUSH") {

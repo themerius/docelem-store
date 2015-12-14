@@ -25,7 +25,6 @@ import scala.collection.JavaConverters._
 
 import com.typesafe.config.ConfigFactory
 
-case object ReceiveFromBroker
 case class Consume(header: Map[String, String], message: String)
 case class Reply(content: String, to: String, trackingNr: String)
 case class Accounting(event: String, query: String, trackingNr: String, unit: String)
@@ -65,6 +64,19 @@ class Gate extends Actor {
   val billing = new StompJmsDestination(brokerBilling)
   val accounting = session.createProducer(billing)
 
+  // Receive messages from broker
+  Future {
+    while (true) {
+      val frame = consumer.receive
+      if (frame.action == MESSAGE) {
+        val headerMap = frame.headerList.asScala.map( x =>
+          x.getKey.toString -> x.getValue.toString
+        ).toMap
+        self ! Consume(headerMap, frame.contentAsString)
+      }
+    }
+  }
+
   // Create a router for balancing messages within the system
   val router = {
     val routees = Vector.fill(100) {
@@ -77,18 +89,6 @@ class Gate extends Actor {
 
   // Consume and distribute messages
   def receive = {
-    case ReceiveFromBroker => {
-      val frame = consumer.receive
-      if (frame.action == MESSAGE) {
-        val headerMap = frame.headerList.asScala.map( x =>
-          x.getKey.toString -> x.getValue.toString
-        ).toMap
-        self ! Consume(headerMap, frame.contentAsString)
-      }
-
-      self ! ReceiveFromBroker
-    }
-
     case Consume(header: Map[String, String], textContent: String) => {
       // unwrap message and route it
       val event = header.getOrElse("event", "")
