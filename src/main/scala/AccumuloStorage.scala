@@ -103,13 +103,13 @@ class AccumuloStorage extends Actor {
 
   // SETUP writers (they are threadsafe and could be shared by multiple actors)
   val config = new BatchWriterConfig
-  config.setMaxMemory(52428800L); // bytes available to batchwriter for buffering mutations
-  config.setMaxWriteThreads(8)
+  config.setMaxMemory(100L * 1024L * 1024L); // bytes available to batchwriter for buffering mutations
+  config.setMaxWriteThreads(10)
   config.setDurability(Durability.NONE) // no write ahead log
-  val writerTimeMachine = conn.createBatchWriter("timemachine_v3", config)
-  val writerDedupes = conn.createBatchWriter("dedupes_v3", config)
-  val writerAnnotations = conn.createBatchWriter("annotations_v3", config)
-  val writerAnnotationsIndex = conn.createBatchWriter("annotations_index_v3", config)
+  var writerTimeMachine = conn.createBatchWriter("timemachine_v3", config)
+  var writerDedupes = conn.createBatchWriter("dedupes_v3", config)
+  var writerAnnotations = conn.createBatchWriter("annotations_v3", config)
+  var writerAnnotationsIndex = conn.createBatchWriter("annotations_index_v3", config)
 
   var countD = 0
   var countA = 0
@@ -117,22 +117,34 @@ class AccumuloStorage extends Actor {
   def receive = {
 
     case WriteDocelems(dedupes, versions, size) => {
-      Future {
         writerDedupes.addMutations(dedupes)
         writerTimeMachine.addMutations(versions)
-      }
 
-      if (countD % 10000 == 0) println(s"Accumulo:WriteDocelems($countD)")
+      if (countD % 1000 == 0) {
+        println(s"Accumulo:WriteDocelems($countD)")
+        time("Accumulo:CloseDocelemWriter") {
+          writerDedupes.close
+          writerTimeMachine.close
+          writerTimeMachine = conn.createBatchWriter("timemachine_v3", config)
+          writerDedupes = conn.createBatchWriter("dedupes_v3", config)
+        }
+      }
       countD = countD + 1
     }
 
     case WriteAnnotations(annots, index, size) => {
-      Future {
-        writerAnnotations.addMutations(annots)
-        writerAnnotationsIndex.addMutations(index)
-      }
+      writerAnnotations.addMutations(annots)
+      writerAnnotationsIndex.addMutations(index)
 
-      if (countA % 10000 == 0) println(s"Accumulo:WriteAnnotations($countA)")
+      if (countA % 1000 == 0){
+        println(s"Accumulo:WriteAnnotations($countA)")
+        time("Accumulo:CloseAnnotsWriter") {
+          writerAnnotations.close
+          writerAnnotationsIndex.close
+          writerAnnotations = conn.createBatchWriter("annotations_v3", config)
+          writerAnnotationsIndex = conn.createBatchWriter("annotations_index_v3", config)
+        }
+      }
       countA = countA + 1
     }
 
