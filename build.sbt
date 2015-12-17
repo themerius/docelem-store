@@ -22,10 +22,10 @@ fork in run := true
 
 // Bring the system property to the forked Java VM
 javaOptions in run += s"-Dconfig.file=${System.getProperty("config.file")}"
-javaOptions in run += "-Xmx4G"
-javaOptions in run += "-server"
-javaOptions in run += "-XX:NewRatio=1"
-javaOptions in run += "-XX:+UseParallelOldGC"
+//javaOptions in run += "-Xmx4G"
+//javaOptions in run += "-server"
+//javaOptions in run += "-XX:NewRatio=1"
+//javaOptions in run += "-XX:+UseParallelOldGC"
 javaOptions in run += "-Dhawtdispatch.threads=4"
 
 // Avoid assembly errors
