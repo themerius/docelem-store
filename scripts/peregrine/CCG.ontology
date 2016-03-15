@@ -1,0 +1,301 @@
+# ErasmusMC ontology file
+VR 0.0
+ON CCG_Ontology
+--
+ID 1
+NA LDK378
+TM 1032900-25-6
+TM 2,4-Pyrimidinediamine, 5-chloro-N4-[2-[(1-methylethyl)sulfonyl]phenyl]-N2-[5-methyl-2-(1-methylethoxy)-4-(4-piperidinyl)phenyl]-
+TM 5-Chlor-N2-[2-isopropoxy-5-methyl-4-(4-piperidinyl)phenyl]-N4-[2-(isopropylsulfonyl)phenyl]-2,4-pyrimidindiamin
+TM 5-Chloro-N2-[2-isopropoxy-5-methyl-4-(4-piperidinyl)phenyl]-N4-[2-(isopropylsulfonyl)phenyl]-2,4-pyrimidinediamine
+TM 5-Chloro-N2-[2-isopropoxy-5-méthyl-4-(4-pipéridinyl)phényl]-N4-[2-(isopropylsulfonyl)phényl]-2,4-pyrimidinediamine
+TM Ceritinib
+TM Céritinib
+TM Ceritinibum
+TM NVP-LDK378-NX
+TM ZYKADIA match = ci,no
+TM 2,4-Pyrimidinediamine, 5-chloro-N4-[2-[(1-methylethyl)sulfonyl]phenyl]-N2-[5-methyl-2-(1-methylethoxy)-4-(4-piperidinyl)phenyl]-
+TM 5-chloro-2-N-(5-methyl-4-piperidin-4-yl-2-propan-2-yloxyphenyl)-4-N-(2-propan-2-ylsulfonylphenyl)pyrimidine-2,4-diamine
+TM 5-chloro-N2-(2-isopropoxy-5-methyl-4-(piperidin-4-yl)phenyl)-N4-(2-(isopropylsulfonyl)phenyl)pyrimidine-2,4-diamine
+TM 5-Chloro-N2-[2-isopropoxy-5-Methyl-4-(4-piperidyl)phenyl]-N4-(2-isopropylsulfonylphenyl)pyriMidine-2,4-diaMine
+TM CHEMBL2403108
+TM LDK 378
+TM LDK378
+TM LDK-378
+TM MFCD26142648
+TM UNII-K418KG2GET
+VO CCG
+VO ChemSpider
+--
+ID 3
+NA BGJ398
+TM 3-(2,6-Dichlor-3,5-dimethoxyphenyl)-1-(6-{[4-(4-ethyl-1-piperazinyl)phenyl]amino}-4-pyrimidinyl)-1-methylharnstoff
+TM 3-(2,6-Dichloro-3,5-dimethoxyphenyl)-1-(6-{[4-(4-ethyl-1-piperazinyl)phenyl]amino}-4-pyrimidinyl)-1-methylurea
+TM 3-(2,6-Dichloro-3,5-diméthoxyphényl)-1-(6-{[4-(4-éthyl-1-pipérazinyl)phényl]amino}-4-pyrimidinyl)-1-méthylurée
+TM Urea, N'-(2,6-dichloro-3,5-dimethoxyphenyl)-N-[6-[[4-(4-ethyl-1-piperazinyl)phenyl]amino]-4-pyrimidinyl]-N-methyl-
+TM 872511-34-7
+TM 3-(2,6-dichloro-3,5-dimethoxyphenyl)-1-(6-((4-(4-ethylpiperazin-1-yl)phenyl)amino)pyrimidin-4-yl)-1-methylurea
+TM 3-(2,6-dichloro-3,5-dimethoxyphenyl)-1-(6-(4-(4-ethylpiperazin-1-yl)phenylamino)pyrimidin-4-yl)-1-methylurea
+TM 3-(2,6-dichloro-3,5-dimethoxyphenyl)-1-(6-{[4-(4-ethylpiperazin-1-yl)phenyl]amino}pyrimidin-4-yl)-1-methylurea
+TM 3-(2,6-Dichloro-3,5-dimethoxyphenyl)-1-[6-[[4-(4-ethylpiperazin-1-yl)phenyl]amino]pyrimidin-4-yl]-1-methylurea
+TM 3-(2,6-dichloro-3,5-dimethoxyphenyl)-1-[6-[4-(4-ethylpiperazin-1-yl)anilino]pyrimidin-4-yl]-1-methylurea
+TM 72511-34-7
+TM BGJ 398
+TM BGJ398
+TM BGJ-398
+TM NVP-BGJ398
+TM INFIGRATINIB @match=ci,no
+TM MFCD22123241
+TM UNII-A4055ME1VK
+TM Urea, N'-(2,6-dichloro-3,5-dimethoxyphenyl)-N-[6-[[3-(4-ethyl-1-piperazinyl)phenyl]amino]-4-pyrimidinyl]-N-methyl- 
+VO CCG
+VO ChemSpider
+--
+NS Voc
+ID CCG
+NA Cologne Center for Genomics
+--
+ID 4
+NA CP724714
+TM 2-methoxy-N-(3-(4-((3-methyl-4-((6-methyl-3-pyridinyl)oxy)phenyl)amino)-6-quinazolinyl)-2-propenyl)acetamide
+TM 2-Methoxy-N-[(2E)-3-[4-[[3-methyl-4-[(6-methyl-3-pyridinyl)oxy]phenyl]amino]-6-quinazolinyl]-2-propen-1-yl]acetamide
+TM 2-Methoxy-N-{(2E)-3-[4-({3-methyl-4-[(6-methyl-3-pyridinyl)oxy]phenyl}amino)-6-chinazolinyl]-2-propen-1-yl}acetamid
+TM 2-Methoxy-N-{(2E)-3-[4-({3-methyl-4-[(6-methyl-3-pyridinyl)oxy]phenyl}amino)-6-quinazolinyl]-2-propen-1-yl}acetamide
+TM 2-Méthoxy-N-{(2E)-3-[4-({3-méthyl-4-[(6-méthyl-3-pyridinyl)oxy]phényl}amino)-6-quinazolinyl]-2-propén-1-yl}acétamide
+TM Acetamide, 2-methoxy-N-[(2E)-3-[4-[[3-methyl-4-[(6-methyl-3-pyridinyl)oxy]phenyl]amino]-6-quinazolinyl]-2-propen-1-yl]-
+TM (E)-2-methoxy-N-(3-(4-((3-methyl-4-((6-methylpyridin-3-yl)oxy)phenyl)amino)quinazolin-6-yl)allyl)acetamide
+TM (E)-2-methoxy-N-(3-(4-(3-methyl-4-(6-methylpyridin-3-yloxy)phenylamino)quinazolin-6-yl)allyl)acetamide
+TM (E)-Ethyl (3-(4-((3-methyl-4-((6-methylpyridin-3-yl)oxy)pheny)amino)quinazolin-6-yl)allyl)carbamate
+TM 383432-38-0
+TM 537705-08-1
+TM 2-Methoxy-N-((E)-3-{4-[3-methyl-4-(6-methyl-pyridin-3-yloxy)-phenylamino]-quinazolin-6-yl}-allyl)-acetamide
+TM 2-methoxy-N-(3-(4-(3-methyl-4-(6-methylpyridin-3-yloxy)phenylamino)quinazolin-6-yl)allyl)acetamide
+TM 2-methoxy-N-[(E)-3-[4-[[3-methyl-4-(6-methylpyridin-3-yl)oxyphenyl]amino]quinazolin-6-yl]prop-2-enyl]acetamide
+TM 2-methoxy-N-[(E)-3-[4-[[3-methyl-4-(6-methylpyridin-3-yl)oxy-phenyl]amino]quinazolin-6-yl]prop-2-enyl]ethanamide
+TM 2-methoxy-N-[(E)-3-[4-[[3-methyl-4-[(6-methyl-3-pyridyl)oxy]phenyl]amino]-6-quinazolinyl]prop-2-enyl]acetamide
+TM 2-methoxy-N-[(E)-3-[4-[[3-methyl-4-[(6-methyl-3-pyridyl)oxy]phenyl]amino]quinazolin-6-yl]prop-2-enyl]acetamide
+TM 2-methoxy-N-[(E)-3-[4-[3-methyl-4-(6-methylpyridin-3-yl)oxyanilino]quinazolin-6-yl]prop-2-enyl]acetamide
+TM 2-methoxy-N-[(E)-3-[4-[3-methyl-4-[(6-methyl-3-pyridinyl)oxy]anilino]-6-quinazolinyl]prop-2-enyl]acetamide
+TM 2-methoxy-N-[(E)-3-[4-[3-methyl-4-[(6-methyl-3-pyridyl)oxy]anilino]quinazolin-6-yl]allyl]acetamide
+TM 2-Methoxy-N-[3-[4-[[3-methyl-4-[(6-methyl-3-pyridinyl)oxy]phenyl]amino]-6-quinazolinyl]-2-propen-1-yl]acetamide
+TM cid_9874913
+TM CP 724714
+TM CP724714
+TM CP-724,714
+TM CP-724714
+TM MFCD15144738
+TM MFCD19687281
+TM UNII-I05QZ0S4V3 
+VO CCG
+VO ChemSpider
+--
+ID 2
+NA Afatinib
+TM 439081-18-2
+TM 850140-72-6
+TM Afatinib
+TM afatinibum
+TM Gilotrif
+TM Tomtovok
+TM Tovok
+TM BIBW2992
+TM Gilotrif
+TM MFCD12407405
+TM UNII-41UD74L59M 
+TM (2E)-N-(4-[(3-chloro-4-fluorophenyl)amino]-7-{[(3S)-tetrahydrofuran-3-yl]oxy}quinazolin-6-yl)-4-(dimethylamino)but-2-enamide
+TM (2E)-N-[4-(3-chloro-4-fluoroanilino]-7-{[(3S)-oxolan- 3-yl]oxy}quinazolin-6-y]-4-(diméthylamino)but-2-énamide
+TM (2E)-N-[4-(3-cloro-4-fluoroanilino)-7-{[(3S)-oxolan- 3-il]oxi}quinazolin-6-il]-4-(dimetilamino)but-2-enamida
+TM (2E)-N-{4-[(3-Chlor-4-fluorphenyl)amino]-7-[(3S)-tetrahydro-3-furanyloxy]-6-chinazolinyl}-4-(dimethylamino)-2-butenamid
+TM (2E)-N-{4-[(3-Chloro-4-fluorophenyl)amino]-7-[(3S)-tetrahydro-3-furanyloxy]-6-quinazolinyl}-4-(dimethylamino)-2-butenamide
+TM (2E)-N-{4-[(3-Chloro-4-fluorophényl)amino]-7-[(3S)-tétrahydro-3-furanyloxy]-6-quinazolinyl}-4-(diméthylamino)-2-buténamide
+TM 2-Butenamide, N-[4-[(3-chloro-4-fluorophenyl)amino]-7-[[(3S)-tetrahydro-3-furanyl]oxy]-6-quinazolinyl]-4-(dimethylamino)-, (2E)-
+TM (2E)-N-[4-[(3-Chloro-4-fluorophenyl)amino]-7-[[(3S)-tetrahydro-3-furanyl]oxy]-6-quinazolinyl]-4-(dimethylamino)-2-butenamide
+TM (2E)-N-{4-[(3-chloro-4-fluorophenyl)amino]-7-[(3S)-oxolan-3-yloxy]quinazolin-6-yl}-4-(dimethylamino)but-2-enamide
+TM (2E)-N-{4-[(3-chloro-4-fluorophenyl)amino]-7-[(3S)-tetrahydrofuran-3-yloxy]quinazolin-6-yl}-4-(dimethylamino)but-2-enamide
+TM (E)-N-[4-(3-chloro-4-fluoroanilino)-7-[[(3S)-3-oxolanyl]oxy]-6-quinazolinyl]-4-(dimethylamino)-2-butenamide
+TM (S)-N-(4-((3-CHLORO-4-FLUOROPHENYL)AMINO)-7-((TETRAHYDROFURAN-3-YL)OXY)QUINAZOLIN-6-YL)-4-(DIMETHYLAMINO)BUT-2-ENAMIDE
+TM (S,E)-N-(4-((3-Chloro-4-fluorophenyl)amino)-7-((tetrahydrofuran-3-yl)oxy)quinazolin-6-yl)-4-(dimethylamino)but-2-enamide
+TM (S,E)-N-(4-(3-chloro-4-fluorophenylamino)-7-(tetrahydrofuran-3-yloxy)quinazolin-6-yl)-4-(dimethylamino)but-2-enamide
+TM N-[4-[(3-chloro-4-fluorophenyl)amino]-7-[[(3S)-tetrahydro-3-furanyl]oxy]-6-quinazolinyl]-4-(dimethylamino)-2-Butenamide
+TM N-[4-[(3-Chloro-4-fluorophenyl)amino]-7-[[(3''S'')-tetrahydro-3-furanyl]oxy]-6-quinazolinyl]-4(dimethylamino)-2-butenamide
+VO CCG
+VO ChemSpider
+--
+ID 8
+NA SP00125
+TM 1,9-Pyrazoloanthrone
+TM 1,6-dihydrodibenzo[cd,g]indazol-6-one
+TM 204-955-6
+TM Dibenz[cd,g]indazol-6(2H)-one
+TM Dibenzo[cd,g]indazol-6(2H)-on
+TM Dibenzo[cd,g]indazol-6(2H)-one
+TM Dibenzo[cd,g]indazol-6(2H)-one
+TM SP600125
+TM 1,9,PYRAZOLEANTHRONE @match=ci,no
+TM 1,9-pyrazoloanthrone
+TM JNK Inhibitor II
+TM 129-56-6
+TM 14,15-diazatetracyclo[7.6.1.02,7.013,16]hexadeca-1(15),2(7),3,5,9(16),10,12-heptaen-8-one
+TM 14,15-diazatetracyclo[7.6.1.02,7.013,16]hexadeca-1(15),2(7),3,5,9,11,13(16)-heptaen-8-one
+TM 2,6-DIHYDROANTHRA/1,9-CD/PYRAZOL-6-ONE
+TM 2H-Dibenzo[cd,g]indazol-6-one
+TM anthra(1,9-cd)pyrazol-6(2H)-one
+TM Anthra[1,9-cd]pyrazol-6 (2H)-one
+TM anthra[1,9-cd]pyrazol-6(2H)-one
+TM Anthra[1-9-cd]pyrazol-6(2H)-one
+TM Anthra-1,9-pyrazol-6-none
+TM anthrapyrazolone
+TM C432165
+TM CB458560
+TM JNK Inhibitor II
+TM K00068
+TM Kinome_3844
+TM Pyrazolanthrone
+TM Pyrazoleanthrone
+TM SP 600125
+TM Z-100
+TM SP-600125
+TM TL8000704
+VO CCG
+VO ChemSpider
+--
+ID 7
+NA Axitinib
+TM 319460-85-0
+TM axitinib
+TM Axitinib
+TM axitinibum
+TM Benzamide, N-methyl-2-[[3-[(1E)-2-(2-pyridinyl)ethenyl]-1H-indazol-6-yl]thio]-
+TM Benzamide, N-methyl-2-[[3-[(E)-2-(2-pyridinyl)ethenyl]-1H-indazol-6-yl]thio]- [ACD/Index Name]
+TM N-Methyl-2-({3-[(E)-2-(2-pyridinyl)vinyl]-1H-indazol-6-yl}sulfanyl)benzamid [German] [ACD/IUPAC Name]
+TM N-Methyl-2-({3-[(E)-2-(2-pyridinyl)vinyl]-1H-indazol-6-yl}sulfanyl)benzamide [ACD/IUPAC Name]
+TM N-Méthyl-2-({3-[(E)-2-(2-pyridinyl)vinyl]-1H-indazol-6-yl}sulfanyl)benzamide [French] [ACD/IUPAC Name]
+TM N-methyl-2-({3-[(E)-2-(pyridin-2-yl)ethenyl]-1H-indazol-6-yl}sulfanyl)benzamide
+TM N-Methyl-2-({3-[(E)-2-(pyridin-2-yl)vinyl]-1H-indazol-6-yl}sulfanyl)benzamide
+TM акситиниб
+TM 阿昔替尼
+TM (E)-N-methyl-2-((3-(2-(pyridin-2-yl)vinyl)-1H-indazol-6-yl)thio)benzamide
+TM (E)-N-methyl-2-(3-(2-(pyridin-2-yl)vinyl)-1H-indazol-6-ylthio)benzamide
+TM {2-[3-((1E)-2-(2-pyridyl)vinyl)(1H-indazol-6-ylthio)]phenyl}-N-methylcarboxamide
+TM 319463-51-9
+TM AG 013736
+TM AG-013736
+TM AG013736
+TM Inlyta
+TM Benzamide, N-methyl-2-((3-((1E)-2-(2-pyridinyl)ethenyl)-1H-indazo)-6-yl)thio)-
+TM MFCD09837898
+TM N-Methyl-[[3[(1E)-2-(2-pyridinyl)ethenyl]-1H-indazol-6-yl]thio]-benzamide
+TM N-Methyl-2-((3-((1E)-2-(pyridin-2-yl)ethenyl)-1H-indazol-6-yl)sulfanyl)benzamide
+TM N-methyl-2-[[3-[(1E)-2-(2-pyridinyl)ethenyl]-1H-indazol-6-yl]thio]-benzamide
+TM N-Methyl-2-[[3-[(1E)-2-(2-pyridinyl)ethenyl]-1H-indazol-6-yl]thio]benzamide
+TM N-methyl-2-[[3-[(E)-2-(2-pyridinyl)ethenyl]-1H-indazol-6-yl]thio]benzamide
+TM N-methyl-2-[[3-[(E)-2-(2-pyridyl)vinyl]-1H-indazol-6-yl]sulfanyl]benzamide
+TM N-methyl-2-[[3-[(E)-2-(2-pyridyl)vinyl]-1H-indazol-6-yl]thio]benzamide
+TM N-Methyl-2-[[3-[(E)-2-pyridin-2-ylethenyl]-1H-indazol-6-yl]sulfanyl]benzamide
+TM N-Methyl-2-[3-(2-pyridin-2-yl-vinyl)-1H-indazol-6-ylsulfanyl]-benzamide
+TM S1005
+TM UNII-C9LVQ0YUXG  
+VO CCG
+VO ChemSpider
+--
+ID 5
+NA OSI906
+TM 867160-71-2
+TM cis-3-[8-Amino-1-(2-phenyl-7-chinolinyl)imidazo[1,5-a]pyrazin-3-yl]-1-methylcyclobutanol
+TM cis-3-[8-Amino-1-(2-phényl-7-quinoléinyl)imidazo[1,5-a]pyrazin-3-yl]-1-méthylcyclobutanol
+TM cis-3-[8-Amino-1-(2-phenyl-7-quinolinyl)imidazo[1,5-a]pyrazin-3-yl]-1-methylcyclobutanol
+TM Cyclobutanol, 3-[8-amino-1-(2-phenyl-7-quinolinyl)imidazo[1,5-a]pyrazin-3-yl]-1-methyl-, cis-
+TM Linsitinib
+TM (1s,3s)-3-(8-amino-1-(2-phenylquinolin-7-yl)imidazo[1,5-a]pyrazin-3-yl)-1-methylcyclobutan-1-ol
+TM (1s,3s)-3-(8-amino-1-(2-phenylquinolin-7-yl)imidazo[1,5-a]pyrazin-3-yl)-1-methylcyclobutanol
+TM 3-[8-amino-1-(2-phenylquinolin-7-yl)imidazo[1,5-a]pyrazin-3-yl]-1-methylcyclobutan-1-ol
+TM 3-[8-Amino-1-(2-phenyl-quinolin-7-yl)-imidazo[1,5-a]pyrazin-3-yl]-1-methyl-cyclobutanol
+TM ASP-7487
+TM Cis-3-[8-amino-1-(2-phenyl-7-quinolinyl)imidazo[1,5-a]pyrazin-3-yl]-1-methyl-cyclobutanol
+TM MFCD12912153
+TM OSI906
+TM UNII-15A52GPT8T 
+VO CCG
+VO ChemSpider
+--
+ID 6
+NA SGX523
+TM 6-{[6-(1-Methyl-1H-pyrazol-4-yl)[1,2,4]triazolo[4,3-b]pyridazin-3-yl]sulfanyl}chinolin
+TM 6-{[6-(1-Méthyl-1H-pyrazol-4-yl)[1,2,4]triazolo[4,3-b]pyridazin-3-yl]sulfanyl}quinoléine
+TM 6-{[6-(1-Methyl-1H-pyrazol-4-yl)[1,2,4]triazolo[4,3-b]pyridazin-3-yl]sulfanyl}quinoline
+TM Quinoline, 6-[[6-(1-methyl-1H-pyrazol-4-yl)-1,2,4-triazolo[4,3-b]pyridazin-3-yl]thio]-
+TM SGX 523
+TM SGX-523
+TM 1022150-57-7
+TM 1072116-01-8
+TM 6-((6-(1-methyl-1H-pyrazol-4-yl)-[1,2,4]triazolo[4,3-b]pyridazin-3-yl)thio)quinoline
+TM 6-(6-(1-methyl-1H-pyrazol-4-yl)-[1,2,4]triazolo[4,3-b]pyridazin-3-ylthio)quinoline
+TM 6-[[6-(1-methyl-1H-pyrazol-4-yl)-1,2,4-triazolo[4,3-b]pyridazin-3-yl]thio]-quinoline
+TM 6-[[6-(1-methyl-4-pyrazolyl)-[1,2,4]triazolo[5,4-f]pyridazin-3-yl]thio]quinoline
+TM 6-[[6-(1-methylpyrazol-4-yl)-[1,2,4]triazolo[4,3-b]pyridazin-3-yl]sulfanyl]quinoline
+TM 6-[[6-(1-methylpyrazol-4-yl)-[1,2,4]triazolo[5,4-f]pyridazin-3-yl]sulfanyl]quinoline
+TM 6-[[6-(1-methylpyrazol-4-yl)-[1,2,4]triazolo[5,4-f]pyridazin-3-yl]thio]quinoline
+TM 6-{[6-(1-methyl-1H-pyrazol-4-yl)-[1,2,4]triazolo[4,3-b]pyridazin-3-yl]sulfanyl}quinoline
+TM MFCD16660190
+TM SGX523
+TM UNII-WH8SQN09KJ  
+VO CCG
+VO ChemSpider
+--
+ID 9
+NA AZD6244
+TM 1H-Benzimidazole-6-carboxamide, 5-[(4-bromo-2-chlorophenyl)amino]-4-fluoro-N-(2-hydroxyethoxy)-1-methyl-
+TM 5-[(4-Brom-2-chlorphenyl)amino]-4-fluor-N-(2-hydroxyethoxy)-1-methyl-1H-benzimidazol-6-carboxamid
+TM 5-[(4-Bromo-2-chlorophenyl)amino]-4-fluoro-N-(2-hydroxyethoxy)-1-methyl-1H-benzimidazole-6-carboxamide
+TM 5-[(4-Bromo-2-chlorophényl)amino]-4-fluoro-N-(2-hydroxyéthoxy)-1-méthyl-1H-benzimidazole-6-carboxamide
+TM 606143-52-6
+TM selumetinib
+TM Selumetinib
+TM sélumétinib
+TM selumetinibum
+TM 5-((4-bromo-2-chlorophenyl)amino)-4-fluoro-N-(2-hydroxyethoxy)-1-methyl-1H-benzo[d]imidazole-6-carboxamide
+TM 5-(4-Bromo-2-chlorophenylamino)-4-fluoro-N-(2-hydroxyethoxy)-1-methyl-1H-benzo[d]imidazole-6-carboxamide
+TM 5-[(4-bromo-2-chlorophenyl)amino]-4-fluoro-N-(2-hydroxyethoxy)-1-methyl-1H-1,3-benzodiazole-6-carboxamide
+TM 6-(4-bromo-2-chloroanilino)-7-fluoro-N-(2-hydroxyethoxy)-3-methyl-5-benzimidazolecarboxamide
+TM 6-(4-bromo-2-chloroanilino)-7-fluoro-N-(2-hydroxyethoxy)-3-methylbenzimidazole-5-carboxamide
+TM 6-(4-Bromo-2-chloro-phenylamino)-7-fluoro-3-methyl-3H-benzoimidazole-5-carboxylic acid (2-hydroxy-ethoxy)-amide
+TM 6-[(4-bromo-2-chlorophenyl)amino]-7-fluoro-N-(2-hydroxyethoxy)-3-methyl-5-benzimidazolecarboxamide
+TM 6-[(4-bromo-2-chlorophenyl)amino]-7-fluoro-N-(2-hydroxyethoxy)-3-methylbenzimidazole-5-carboxamide
+TM 6-[(4-bromo-2-chloro-phenyl)amino]-7-fluoro-N-(2-hydroxyethoxy)-3-methyl-benzimidazole-5-carboxamide
+TM Array142886
+TM ARRY-142886
+TM ARRY-886
+TM AZD6244
+TM NSC 741O78
+TM MFCD11977472 [MDL number]
+TM UNII-6UH91I579U  
+VO CCG
+VO ChemSpider
+--
+ID 10
+NA GDC0879
+TM 1H-Inden-1-one, 2,3-dihydro-5-[1-(2-hydroxyethyl)-3-(4-pyridinyl)-1H-pyrazol-4-yl]-, oxime, (1E)- [ACD/Index Name]
+TM 2,3-Dihydro-5-[1-(2-hydroxyethyl)-3-(4-pyridinyl)-1H-pyrazol-4-yl]-1H-inden-1-one oxime
+TM 2-{4-[(1E)-1-(Hydroxyimino)-2,3-dihydro-1H-inden-5-yl]-3-(4-pyridinyl)-1H-pyrazol-1-yl}ethanol [German] [ACD/IUPAC Name]
+TM 2-{4-[(1E)-1-(Hydroxyimino)-2,3-dihydro-1H-inden-5-yl]-3-(4-pyridinyl)-1H-pyrazol-1-yl}ethanol [ACD/IUPAC Name]
+TM 2-{4-[(1E)-1-(Hydroxyimino)-2,3-dihydro-1H-indén-5-yl]-3-(4-pyridinyl)-1H-pyrazol-1-yl}éthanol [French] [ACD/IUPAC Name]
+TM (E)-5-(1-(2-hydroxyethyl)-3-(pyridin-4-yl)-1H-pyrazol-4-yl)-2,3-dihydro-1H-inden-1-one oxime
+TM (E)-5-(1-(2-hydroxyethyl)-3-(pyridin-4-yl)-1H-pyrazol-4-yl)-2,3-dihydroinden-1-one oxime
+TM (E)-5-(1-(2-hydroxyethyl)-3-(pyridin-4-yl)-1H-pyrazol-4-yl)-2,3-dihydroinden-1-oneoxime
+TM 905281-76-7
+TM 2-[4-[(1E)-1-hydroxyimino-2,3-dihydroinden-5-yl]-3-pyridin-4-ylpyrazol-1-yl]ethanol
+TM 2-{4-[(1E)-1-(hydroxyimino)-2,3-dihydro-1H-inden-5-yl]-3-(pyridin-4-yl)-1H-pyrazol-1-yl}ethan-1-ol
+TM 2-{4-[(1E)-1-(hydroxyimino)-2,3-dihydro-1H-inden-5-yl]-3-(pyridin-4-yl)-1H-pyrazol-1-yl}ethanol
+TM 2-{4-[(1E)-1-(hydroxyimino)-2,3-dihydroinden-5-yl]-3-(pyridin-4-yl)pyrazol-1-yl}ethanol
+TM 5-[1-(2-Hydroxy-ethyl)-3-pyridin-4-yl-1H-pyrazol-4-yl]-indan-1-one oxime
+TM 5-[1-(2-hydroxyethyl)-3-pyridin-4-yl-4-pyrazolyl]-2,3-dihydroinden-1-one oxime
+TM AR 00341677
+TM AR00341677
+TM GDC 0879
+TM GDC0879
+TM AR00341677
+TM GDC-0879
+TM MFCD16875916
+VO CCG
+VO ChemSpider
+--

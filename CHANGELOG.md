@@ -25,16 +25,18 @@ And [Keep a CHANGELOG](http://keepachangelog.com):
     - `Fixed` for any bug fixes. (+PATCH)
     - `Security` to invite users to upgrade in case of vulnerabilities. (+PATCH)
 
+## 0.3.0 - n/a
+
 ## 0.2.0 - 2015-12-17
-## Fixed
+### Fixed
 - Using *no* hard coded `authority` anymore.
 
-## Added
+### Added
 - Introducing a `annotations_index` for searching document elements
   with annotations.
 - Query `annotaitons_index` with a simple XML interface.
 
-## Changed (minior)
+### Changed (minior)
 - Message reading from broker via (faster) raw STOMP protocol.
 - Message reading from broker uses now Callbacks, which should be a lot faster.
 - Accumulo closes and reopens the BatchWriters all 1000 corpora.

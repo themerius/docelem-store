@@ -43,73 +43,16 @@ class AccumuloStorage extends Actor {
 
   println(s"Storage ${context.dispatcher}")
 
-  val conf = ConfigFactory.load
-
-  val instanceName = conf.getString("docelem-store.storage.accumulo.instanceName")
-  val zooServers = conf.getString("docelem-store.storage.accumulo.zooServers")
-  val user = conf.getString("docelem-store.storage.accumulo.user")
-  val pwd = conf.getString("docelem-store.storage.accumulo.pwd")
-
-  // START embedded instance
-  val inst = if (conf.getBoolean("docelem-store.storage.accumulo.embedded")) {
-    val dict = new File("/tmp/accumulo-mini-cluster")
-    val accumulo = new MiniAccumuloCluster(dict, instanceName)
-    accumulo.start
-    println("Started embedded Accumulo instance.")
-    new ZooKeeperInstance(accumulo.getInstanceName, accumulo.getZooKeepers)
-  } else {
-    new ZooKeeperInstance(instanceName, zooServers)
-  }
-
-  // CONNECT to instance
-  val conn = if (conf.getBoolean("docelem-store.storage.accumulo.embedded")) {
-    inst.getConnector(user, new PasswordToken(instanceName))
-  } else {
-    inst.getConnector(user, new PasswordToken(pwd))
-  }
-
-  // CREATE tables
-  val ops = conn.tableOperations()
-  if (!ops.exists("timemachine_v3")) {
-    ops.create("timemachine_v3")
-    // -schema-> authority : type : uid, hash
-    // allow infinite versions (Accumulo Book, p.117)
-    ops.removeProperty("timemachine_v3", "table.iterator.majc.vers.opt.maxVersions")
-    ops.removeProperty("timemachine_v3", "table.iterator.minc.vers.opt.maxVersions")
-    ops.removeProperty("timemachine_v3", "table.iterator.scan.vers.opt.maxVersions")
-    // ops.setProperty("annotations_v3", "table.iterator.majc.vers.opt.maxVersions", "1000")
-    // ops.setProperty("annotations_v3", "table.iterator.minc.vers.opt.maxVersions", "1000")
-    // ops.setProperty("annotations_v3", "table.iterator.scan.vers.opt.maxVersions", "1000")
-  }
-  if (!ops.exists("dedupes_v3")) {
-    ops.create("dedupes_v3")
-    // -schema-> hash : authority : type/uid, model payload as xml
-  }
-  if (!ops.exists("annotations_v3")) {
-    ops.create("annotations_v3")
-    // -schema-> from/fromVersion : layer : purposeHash, annotation payload as xml
-  }
-  if (!ops.exists("annotations_index_v3")) {
-    ops.create("annotations_index_v3")
-    // -schema-> layer as shardID : to : from/fromVersion, annotation payload as xml
-    // -schema-> to : layer : from/fromVersion, annotation payload as xml
-    // -schema-> payloadHash : to : from, annotation payload as xml  # payloadHash contains only layer/purpose/..? so that more (similar) annotations are grouped
-  }
-
-  // GRANT permissions
-  val secOps = conn.securityOperations()
-  val newRootAuths = new Authorizations("public")
-  secOps.changeUserAuthorizations("root", newRootAuths)
-
   // SETUP writers (they are threadsafe and could be shared by multiple actors)
   val config = new BatchWriterConfig
   config.setMaxMemory(100L * 1024L * 1024L); // bytes available to batchwriter for buffering mutations
   config.setMaxWriteThreads(10)
   config.setDurability(Durability.NONE) // no write ahead log
-  var writerTimeMachine = conn.createBatchWriter("timemachine_v3", config)
-  var writerDedupes = conn.createBatchWriter("dedupes_v3", config)
-  var writerAnnotations = conn.createBatchWriter("annotations_v3", config)
-  var writerAnnotationsIndex = conn.createBatchWriter("annotations_index_v3", config)
+
+  var writerTimeMachine = AccumuloConnection.get.createBatchWriter("timemachine_v3", config)
+  var writerDedupes = AccumuloConnection.get.createBatchWriter("dedupes_v3", config)
+  var writerAnnotations = AccumuloConnection.get.createBatchWriter("annotations_v3", config)
+  var writerAnnotationsIndex = AccumuloConnection.get.createBatchWriter("annotations_index_v3", config)
 
   var countD = 0
   var countA = 0
@@ -125,8 +68,8 @@ class AccumuloStorage extends Actor {
         time("Accumulo:CloseDocelemWriter") {
           writerDedupes.close
           writerTimeMachine.close
-          writerTimeMachine = conn.createBatchWriter("timemachine_v3", config)
-          writerDedupes = conn.createBatchWriter("dedupes_v3", config)
+          writerTimeMachine = AccumuloConnection.get.createBatchWriter("timemachine_v3", config)
+          writerDedupes = AccumuloConnection.get.createBatchWriter("dedupes_v3", config)
         }
       }
       countD = countD + 1
@@ -141,8 +84,8 @@ class AccumuloStorage extends Actor {
         time("Accumulo:CloseAnnotsWriter") {
           writerAnnotations.close
           writerAnnotationsIndex.close
-          writerAnnotations = conn.createBatchWriter("annotations_v3", config)
-          writerAnnotationsIndex = conn.createBatchWriter("annotations_index_v3", config)
+          writerAnnotations = AccumuloConnection.get.createBatchWriter("annotations_v3", config)
+          writerAnnotationsIndex = AccumuloConnection.get.createBatchWriter("annotations_index_v3", config)
         }
       }
       countA = countA + 1
@@ -181,7 +124,7 @@ class AccumuloStorage extends Actor {
 
   def scanSingleDocelem(authority: String, typ: String, uid: String) = {
     val auths = new Authorizations()
-    val scan = conn.createScanner("timemachine_v3", auths)
+    val scan = AccumuloConnection.get.createScanner("timemachine_v3", auths)
     scan.setRange(Range.exact(authority))
     scan.fetchColumn(new Text(typ), new Text(uid))
 
@@ -189,7 +132,7 @@ class AccumuloStorage extends Actor {
         val key = entry.getKey()
         val value = entry.getValue()
 
-        val scanDedupes = conn.createScanner("dedupes_v3", auths)
+        val scanDedupes = AccumuloConnection.get.createScanner("dedupes_v3", auths)
         scanDedupes.setRange(Range.exact(value.toString))  // ^= hash
         scanDedupes.fetchColumn(new Text(authority), new Text(typ + "/" + uid))
 
@@ -209,7 +152,7 @@ class AccumuloStorage extends Actor {
 
   def scanAnnotations(uiid: String, version: String) = {
     val auths = new Authorizations()
-    val scan = conn.createScanner("annotations_v3", auths)
+    val scan = AccumuloConnection.get.createScanner("annotations_v3", auths)
     scan.setRange(new Range(uiid, uiid + "/" + version))
     for (entry <- scan.asScala) yield {
       entry.getValue
@@ -223,7 +166,7 @@ class AccumuloStorage extends Actor {
     val tableName = "annotations_index_v3"
     val authorizations = new Authorizations()
     val numQueryThreads = 3
-    val bs = conn.createBatchScanner(tableName, authorizations, numQueryThreads)
+    val bs = AccumuloConnection.get.createBatchScanner(tableName, authorizations, numQueryThreads)
 
     val terms = uiids.map(uiid => new Text(uiid)).toArray
 
