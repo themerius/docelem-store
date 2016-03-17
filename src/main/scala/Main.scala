@@ -34,11 +34,11 @@ object DocElemStore extends App {
 
   // Schedule a FLUSH after 5s every 10s.
   // Only needed for testing...
-  if (conf.getBoolean("docelem-store.timedFlush")) {
-    import system.dispatcher
-    system.scheduler.schedule(5000.milliseconds,
-      10000.milliseconds,
-      storage,
-      "FLUSH")
-  }
+  // if (conf.getBoolean("docelem-store.timedFlush")) {
+  //   import system.dispatcher
+  //   system.scheduler.schedule(5000.milliseconds,
+  //     10000.milliseconds,
+  //     storage,
+  //     "FLUSH")
+  // }
 }

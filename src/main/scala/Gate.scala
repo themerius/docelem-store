@@ -37,6 +37,8 @@ class Gate extends Actor {
 
   println(s"Gate ${context.dispatcher}")
 
+  var latestErrorLog = ""
+
   val conf = ConfigFactory.load
   val brokerUri = conf.getString("docelem-store.broker.uri")
   val brokerUsr = conf.getString("docelem-store.broker.usr")
@@ -120,13 +122,29 @@ class Gate extends Actor {
     Router(RoundRobinRoutingLogic(), routees)
   }
 
+  val accumuloFeeder = context.actorOf(Props[AccumuloFeeder])
+
   // Consume and distribute messages
   def receive = {
     case Consume(header: Map[String, String], textContent: String) => {
       // unwrap message and route it
       val event = header.getOrElse("event", "")
+      val contentType = header.getOrElse("content-type", "")
       val replyTo = header.getOrElse("reply-to", "")
       var trackingNr = header.getOrElse("tracking-nr", "")
+
+      (contentType, event) match {
+        case ("gzip-xml", "ExtractNNEs") => {
+          println("gzip-xml", "ExtractNNEs")
+          accumuloFeeder ! Transform2DocElem(new GzippedXCasModel with ExtractNNEs, textContent.getBytes("UTF-8"))
+          // Oder classOf[ExtractNNE].newInstance
+        }
+        case (x, y) => {
+          latestErrorLog = s"No rules for ($x, $y)."
+          println(latestErrorLog)
+        }
+      }
+
       event match {
         case "FoundCorpus" => {
           router.route(FoundCorpus(textContent), sender())
