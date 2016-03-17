@@ -32,6 +32,7 @@ libraryDependencies += "org.fusesource.stompjms" % "stompjms-client" % "1.19"
 
 // SCAI Artifacts
 libraryDependencies += "de.fraunhofer.scai.bio.uima" % "UIMACorePipelet" % "7.0"
+libraryDependencies += "de.fraunhofer.scai.bio.uima" % "UIMATypeSystem" % "7.0"
 
 fork in run := true
 
