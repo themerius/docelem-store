@@ -135,7 +135,7 @@ class Gate extends Actor {
 
       (contentType, event) match {
         case ("gzip-xml", "ExtractNNEs") => {
-          println("gzip-xml", "ExtractNNEs")
+          println("gzip-xml ExtractNNEs")
           accumuloFeeder ! Transform2DocElem(new GzippedXCasModel with ExtractNNEs, textContent.getBytes("UTF-8"))
           // Oder classOf[ExtractNNE].newInstance
         }

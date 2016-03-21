@@ -37,7 +37,7 @@ class HelloAkkaSpec(_system: ActorSystem)
 
     gate ! Consume(header, getSampleXCAS)
 
-    gate.underlyingActor.asInstanceOf[Gate].latestErrorLog should be("admin")
+    gate.underlyingActor.asInstanceOf[Gate].brokerUsr should be("admin")
   }
 
   // it should "be able to get a new greeting" in {

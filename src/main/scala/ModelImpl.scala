@@ -1,16 +1,24 @@
 package eu.themerius.docelemstore
 
 import java.io.ByteArrayInputStream
+import java.net.URI
+
 import de.fraunhofer.scai.bio.uima.core.util.UIMATypeSystemUtils
+import de.fraunhofer.scai.bio.uima.core.util.UIMAViewUtils
+import de.fraunhofer.scai.bio.uima.core.deploy.AbstractDeployer
+import de.fraunhofer.scai.bio.uima.core.provenance.ProvenanceUtils
+import org.apache.uima.fit.util.JCasUtil
 import de.fraunhofer.scai.bio.msa.util.MessageUtils
+import de.fraunhofer.scai.bio.extraction.types.text.NormalizedNamedEntity;
 import org.apache.uima.cas.CAS
+
+import scala.util.hashing.MurmurHash3
+
 
 
 trait CasModel extends Model {
   var cas: CAS = _
 }
-
-// Or better make static methods??
 
 class GzippedXCasModel extends CasModel {
 
@@ -28,8 +36,51 @@ class GzippedXCasModel extends CasModel {
 trait ExtractNNEs extends CasModel with ModelTransRules  {
 
   def applyRules = {
-    //super.applyRules
-    println(cas)
+    // TODO: superCorpus = super.applyRules
+    val jcas = cas.getJCas()
+    val view = UIMAViewUtils.getOrCreatePreferredView(jcas, AbstractDeployer.VIEW_DOCUMENT)
+    val header = UIMAViewUtils.getHeaderFromView(jcas)
+
+    val annotationLayer = ProvenanceUtils.getDocumentCollectionName(jcas)
+    val layerUri = s"run/name:${annotationLayer}"
+
+    val userId = ProvenanceUtils.getUserSuppliedID(jcas)
+    val pmidId = userId.split("PMID")
+
+    val sigmaticType = header.getDocumentConcept
+    val sigmaticUri = (sigmaticType, pmidId) match {
+      case (null, Array("", id)) => s"header/pmid:${id}"
+      case _ => s"${sigmaticType}/name:${userId}"
+      // TODO: we need the sigmatic id type in the uima type system!?
+    }
+
+    // TODO: Sub-Iterator for Title or Abstract or Sentences?
+    val it = JCasUtil.iterator(view, classOf[NormalizedNamedEntity])
+
+    var artifacts = Seq[KnowledgeArtifact]()
+
+    while (it.hasNext) {
+      val nne = it.next
+
+      val dictId = nne.getConcept.getIdentifierSource.replace(".syn", "").toLowerCase
+      val conceptId = nne.getConcept.getIdentifier
+      val prefName = nne.getConcept.getPrefLabel.getValue.replaceAll("\\s", "_").toLowerCase
+
+      val attrUri = s"concept/${dictId}:${prefName}"
+      val annotModel = s"{pos:[${nne.getBegin},${nne.getEnd}]}".getBytes("UTF-8")
+      // TODO: into annotModel should be a link to a attribut of the 0layer.
+
+      // Prepend all artifacts (this is O(1) on immutable lists)
+      artifacts = KnowledgeArtifact(
+        new URI(sigmaticUri),
+        new URI(layerUri),
+        new URI(attrUri),
+        annotModel,
+        Meta(new URI("annotation@v1"), MurmurHash3.bytesHash(annotModel))
+      ) +: artifacts
+    }
+
+    Corpus(artifacts)
   }
 
 }

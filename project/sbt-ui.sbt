@@ -3,3 +3,5 @@
 addSbtPlugin("org.scala-sbt" % "sbt-core-next" % "0.1.1")
 
 addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "0.14.0")
+
+addSbtPlugin("org.ensime" % "ensime-sbt" % "0.4.0")

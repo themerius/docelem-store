@@ -21,7 +21,7 @@ trait ModelTransRules extends Model {
    * Specific transformation of a given model into
    * the generic document element data structure.
    */
-   def applyRules // TODO: return seq of doc elems
+   def applyRules: Corpus // TODO: return seq of doc elems
 
 }
 //

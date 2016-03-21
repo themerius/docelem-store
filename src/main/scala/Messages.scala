@@ -1,19 +1,21 @@
 package eu.themerius.docelemstore
 
+import java.net.URI
+
 case class Transform2DocElem(model: ModelTransRules, data: Array[Byte])
 
 // TODO: do we need a special constrainted/extended URI?
 // The @, :, !, ...
 case class KnowledgeArtifact(
-  sigmatics: java.net.URI,  // indication of a information.
-  pragmatics: java.net.URI, // the annotation layer.
-  semantics: java.net.URI,  // represents a attribute of the doc elem.
-  model: Array[Byte],  // the raw model as byte array.
+  sigmatics: URI,  // indication of a information.
+  pragmatics: URI, // the annotation layer.
+  semantics: URI,  // represents a attribute of the doc elem.
+  model: Array[Byte],  // the raw (domain) model (or signal) as byte array.
   meta: Meta
 )
 
 case class Meta(
-  specification: java.net.URI,  // link to the model's specification document.
+  specification: URI,  // link to the model's specification document.
   fingerprint: Int = 0,
   timestamp: Long = System.currentTimeMillis
 )
@@ -23,3 +25,4 @@ case class Meta(
 // DocElem Shell is build up with all other layers (this are esp. the classic "annotations" or the hierarchial/topological information)
 
 // A sequence of DocElems or any KnowledgeArtifacts is a Corpus.
+case class Corpus(artifacts: Seq[KnowledgeArtifact])

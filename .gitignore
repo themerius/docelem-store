@@ -22,3 +22,6 @@ project/.sbtserver
 *.lock
 
 old/
+
+.ensime
+.ensime_cache
