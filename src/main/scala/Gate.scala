@@ -142,7 +142,25 @@ class Gate extends Actor {
             Transform2DocElem(
               new GzippedXCasModel with ExtractNNEs,
               textContent.getBytes("UTF-8")
-            )
+            ), sender()
+          )
+        }
+        case ("gzip-xml", "ExtractNNEs & ExtractSCAIViewAbstracts") => {
+          log.info("(Gate) got gzipped XCAS and configure for NNE extraction and SCAIView abstract extraction")
+          routerF.route(
+            Transform2DocElem(
+              new GzippedXCasModel with ExtractNNEs with ExtractSCAIViewAbstracts,
+              textContent.getBytes("UTF-8")
+            ), sender()
+          )
+        }
+        case ("gzip-xml", _) => {
+          log.info("(Gate) got gzipped XCAS and configure for NNE extraction and SCAIView abstract extraction")
+          routerF.route(
+            Transform2DocElem(
+              new GzippedXCasModel with ExtractNNEs with ExtractSCAIViewAbstracts,
+              textContent.getBytes("UTF-8")
+            ), sender()
           )
         }
         case (x, y) => {

@@ -35,8 +35,7 @@ class GzippedXCasModel extends CasModel {
 
 trait ExtractNNEs extends CasModel with ModelTransRules  {
 
-  def applyRules = {
-    // TODO: superCorpus = super.applyRules
+  override def applyRules = {
     val jcas = cas.getJCas()
     val view = UIMAViewUtils.getOrCreatePreferredView(jcas, AbstractDeployer.VIEW_DOCUMENT)
     val header = UIMAViewUtils.getHeaderFromView(jcas)
@@ -49,7 +48,7 @@ trait ExtractNNEs extends CasModel with ModelTransRules  {
 
     val sigmaticType = header.getDocumentConcept
     val sigmaticUri = (sigmaticType, pmidId) match {
-      case (null, Array("", id)) => s"scaiview.header/pmid:${id}"
+      case (null, Array("", id)) => s"header/pmid:${id}"
       case _ => s"${sigmaticType}/name:${userId}"
       // TODO: we need the sigmatic id type in the uima type system!?
     }
@@ -80,7 +79,58 @@ trait ExtractNNEs extends CasModel with ModelTransRules  {
       ) +: artifacts
     }
 
-    Corpus(artifacts)
+    Corpus(artifacts ++ super.applyRules.artifacts)
+  }
+
+}
+
+trait ExtractSCAIViewAbstracts extends CasModel with ModelTransRules  {
+
+  override def applyRules = {
+    val jcas = cas.getJCas()
+    val view = UIMAViewUtils.getOrCreatePreferredView(jcas, AbstractDeployer.VIEW_DOCUMENT)
+    val header = UIMAViewUtils.getHeaderFromView(jcas)
+
+    //val annotationLayer = ProvenanceUtils.getDocumentCollectionName(jcas)
+    val layerUri = "_"
+
+    val userId = ProvenanceUtils.getUserSuppliedID(jcas)
+    val pmidId = userId.split("PMID")
+
+    val sigmaticType = header.getDocumentConcept
+    val sigmaticUri = (sigmaticType, pmidId) match {
+      case (null, Array("", id)) => s"header/pmid:${id}"
+      case _ => s"${sigmaticType}/name:${userId}"
+      // TODO: we need the sigmatic id type in the uima type system!?
+    }
+
+    var artifacts = Seq[KnowledgeArtifact]()
+
+    artifacts = KnowledgeArtifact(
+      new URI(sigmaticUri),
+      new URI(layerUri),
+      new URI("header/header"),
+      view.getDocumentText.getBytes,
+      Meta(new URI("scaiview.abstract"))
+    ) +: artifacts
+
+    artifacts = KnowledgeArtifact(
+      new URI(sigmaticUri),
+      new URI(layerUri),
+      new URI("header/authors"),
+      header.getAuthors.toStringArray.mkString(", ").getBytes,
+      Meta(new URI("freetext"))
+    ) +: artifacts
+
+    artifacts = KnowledgeArtifact(
+      new URI(sigmaticUri),
+      new URI(layerUri),
+      new URI("header/publicationDate"),
+      header.getPublicationDate.getDate.toString.getBytes,
+      Meta(new URI("freetext"))
+    ) +: artifacts
+
+    Corpus(artifacts ++ super.applyRules.artifacts)
   }
 
 }
