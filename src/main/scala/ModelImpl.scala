@@ -49,7 +49,7 @@ trait ExtractNNEs extends CasModel with ModelTransRules  {
 
     val sigmaticType = header.getDocumentConcept
     val sigmaticUri = (sigmaticType, pmidId) match {
-      case (null, Array("", id)) => s"header/pmid:${id}"
+      case (null, Array("", id)) => s"scaiview.header/pmid:${id}"
       case _ => s"${sigmaticType}/name:${userId}"
       // TODO: we need the sigmatic id type in the uima type system!?
     }

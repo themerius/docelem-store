@@ -6,6 +6,8 @@ import akka.actor.{ ActorRef, ActorSystem, Props, Actor, Inbox }
 import akka.routing.ActorRefRoutee
 import akka.routing.Router
 import akka.routing.RoundRobinRoutingLogic
+import akka.event.Logging
+
 import scala.concurrent.duration._
 
 import org.fusesource.stomp.jms._
@@ -35,6 +37,7 @@ case class Accounting(event: String, query: String, trackingNr: String, unit: St
 
 class Gate extends Actor {
 
+  val log = Logging(context.system, this)
   println(s"Gate ${context.dispatcher}")
 
   var latestErrorLog = ""
@@ -59,11 +62,11 @@ class Gate extends Actor {
   stomp.setPasscode(brokerPwd)
 
   val receiveCallback = new Callback[StompFrame]() {
-    override def onFailure(value: Throwable) {
+    override def onFailure(value: Throwable) = {
       println(s"Receive Failed ${value}")
     }
 
-    override def onSuccess(frame: StompFrame) {
+    override def onSuccess(frame: StompFrame) = {
       if (frame.action == MESSAGE) {
         // generate a list of properties and transform it into a standard map
         val headerMap = frame.headerList.asScala.map( entry =>
@@ -77,11 +80,11 @@ class Gate extends Actor {
 
   stomp.connectCallback(new Callback[CallbackConnection] {
 
-    override def onFailure(value: Throwable) {
+    override def onFailure(value: Throwable) = {
       println(s"Connection Failed ${value}")
     }
 
-    override def onSuccess(connection: CallbackConnection) {
+    override def onSuccess(connection: CallbackConnection) = {
       println(s"Raw STOMP connection opened.")
 
       // register the callback which is triggered when a messages arrives
@@ -95,12 +98,12 @@ class Gate extends Actor {
       frame.addHeader(ID, connection.nextId)
 
       connection.request(frame, new Callback[StompFrame]() {
-        override def onFailure(value: Throwable) {
+        override def onFailure(value: Throwable) = {
           println(s"Receive Failed ${value}")
           connection.close(null)
         }
 
-        override def onSuccess(value: StompFrame) {
+        override def onSuccess(value: StompFrame) = {
           println(s"Raw STOMP connection listens to ${brokerQueue}.")
         }
       })
@@ -114,7 +117,7 @@ class Gate extends Actor {
 
   // Create a router for balancing messages within the system
   val router = {
-    val routees = Vector.fill(10) {
+    val routees = Vector.fill(1) {
       val r = context.actorOf(Props[AccumuloTranslator])
       context.watch(r)
       ActorRefRoutee(r)
@@ -135,9 +138,8 @@ class Gate extends Actor {
 
       (contentType, event) match {
         case ("gzip-xml", "ExtractNNEs") => {
-          println("gzip-xml ExtractNNEs")
+          log.info("(Gate) got a gzip-xml where NNEs should be extracted")
           accumuloFeeder ! Transform2DocElem(new GzippedXCasModel with ExtractNNEs, textContent.getBytes("UTF-8"))
-          // Oder classOf[ExtractNNE].newInstance
         }
         case (x, y) => {
           latestErrorLog = s"No rules for ($x, $y)."
