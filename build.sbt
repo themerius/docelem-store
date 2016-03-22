@@ -16,10 +16,12 @@ user=
 password=
 */
 
+updateOptions := updateOptions.value.withCachedResolution(true)
+
 libraryDependencies ++= Seq(
-  "com.typesafe.akka" %% "akka-actor" % "2.3.11",
-  "com.typesafe.akka" %% "akka-testkit" % "2.3.11",
-  "com.typesafe.akka" %% "akka-remote" % "2.3.11",
+  "com.typesafe.akka" %% "akka-actor" % "2.4.2",
+  "com.typesafe.akka" %% "akka-testkit" % "2.4.2",
+  "com.typesafe.akka" %% "akka-remote" % "2.4.2",
   "org.scala-lang.modules" %% "scala-xml" % "1.0.3",
   "org.apache.accumulo" % "accumulo-core" % "1.7.1",
   "org.apache.accumulo" % "accumulo-minicluster" % "1.7.1",
