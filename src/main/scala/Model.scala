@@ -24,20 +24,3 @@ trait ModelTransRules extends Model {
    def applyRules: Corpus // TODO: return seq of doc elems
 
 }
-//
-// trait DocElem2Record {
-//
-//   /*
-//    * Transform document elements into a datastructure which is
-//    * understood by the storage backend.
-//    */
-//
-// }
-//
-// trait StorageBackend {
-//
-//   /*
-//    * A storage backend where the document elements are persisted to.
-//    */
-//
-// }

@@ -2,13 +2,11 @@ package eu.themerius.docelemstore
 
 import eu.themerius.docelemstore.utils.Stats.time
 
-import akka.actor.{ ActorRef, ActorSystem, Props, Actor, Inbox }
+import akka.actor.{ Props, Actor }
 import akka.routing.ActorRefRoutee
 import akka.routing.Router
 import akka.routing.RoundRobinRoutingLogic
 import akka.event.Logging
-
-import scala.concurrent.duration._
 
 import org.fusesource.stomp.jms._
 import javax.jms._
@@ -20,12 +18,6 @@ import org.fusesource.stomp.client.Stomp
 // Stomp Callbacks
 import org.fusesource.stomp.client.Callback
 import org.fusesource.stomp.client.CallbackConnection
-
-import scala.concurrent.duration._
-import scala.concurrent.{ Future, Promise }
-import scala.concurrent.Await
-import scala.concurrent.TimeoutException
-import scala.concurrent.ExecutionContext.Implicits.global
 
 import scala.collection.JavaConverters._
 
@@ -125,7 +117,14 @@ class Gate extends Actor {
     Router(RoundRobinRoutingLogic(), routees)
   }
 
-  val accumuloFeeder = context.actorOf(Props[AccumuloFeeder])
+  val routerF = {
+    val routees = Vector.fill(1) {
+      val r = context.actorOf(Props[AccumuloFeeder])
+      context.watch(r)
+      ActorRefRoutee(r)
+    }
+    Router(RoundRobinRoutingLogic(), routees)
+  }
 
   // Consume and distribute messages
   def receive = {
@@ -138,8 +137,13 @@ class Gate extends Actor {
 
       (contentType, event) match {
         case ("gzip-xml", "ExtractNNEs") => {
-          log.info("(Gate) got a gzip-xml where NNEs should be extracted")
-          accumuloFeeder ! Transform2DocElem(new GzippedXCasModel with ExtractNNEs, textContent.getBytes("UTF-8"))
+          log.info("(Gate) got gzipped XCAS and configure for NNE extraction")
+          routerF.route(
+            Transform2DocElem(
+              new GzippedXCasModel with ExtractNNEs,
+              textContent.getBytes("UTF-8")
+            )
+          )
         }
         case (x, y) => {
           latestErrorLog = s"No rules for ($x, $y)."

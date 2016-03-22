@@ -1,36 +1,13 @@
 package eu.themerius.docelemstore
 
-import akka.actor.{ ActorRef, ActorSystem, Props, Actor, Inbox }
-
-import org.apache.accumulo.core.data.Mutation
 import org.apache.accumulo.minicluster.MiniAccumuloCluster
 import org.apache.accumulo.core.client.ZooKeeperInstance
 import org.apache.accumulo.core.client.security.tokens.PasswordToken
-import org.apache.accumulo.core.security.ColumnVisibility
-import org.apache.accumulo.core.data.Value
-import org.apache.accumulo.core.data.Mutation
-import org.apache.accumulo.core.client.BatchWriterConfig
 import org.apache.accumulo.core.security.Authorizations
-import org.apache.accumulo.core.data.Range
-import org.apache.accumulo.core.data.Key
-import org.apache.accumulo.core.client.IteratorSetting
-import org.apache.accumulo.core.iterators.user.IntersectingIterator
-import org.apache.accumulo.core.client.Durability
-
-import org.apache.hadoop.io.Text
 
 import java.io.File
-import java.lang.Iterable
-import java.util.Collections
-
-import scala.collection.JavaConverters._
-
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
 
 import com.typesafe.config.ConfigFactory
-
-import eu.themerius.docelemstore.utils.Stats.time
 
 object AccumuloConnectionFactory {
 

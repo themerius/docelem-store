@@ -42,8 +42,8 @@ class AccumuloFeeder extends Actor {
       val mutations = corpus.artifacts.map { artifact =>
         val sigmatics = artifact.sigmatics.toString.getBytes
         val pragmatics = artifact.pragmatics.toString.getBytes
-        val semantics = artifact.semantics.toString.getBytes
 
+        val semantics = artifact.semantics
         val spec = artifact.meta.specification
         val fingerprint = Integer.toHexString(artifact.meta.fingerprint)
 
@@ -66,7 +66,7 @@ class AccumuloFeeder extends Actor {
       }
 
       val mutations = filteredCorpus.map { artifact =>
-        val layerAndAttribute = s"${artifact.pragmatics.toString}!${artifact.semantics.toString}"
+        val layerAndAttribute = s"${artifact.pragmatics}!${artifact.semantics}"
         val docElemId = artifact.sigmatics.toString
 
         // calculate a partition ID:

@@ -36,6 +36,9 @@ libraryDependencies += "org.fusesource.stompjms" % "stompjms-client" % "1.19"
 libraryDependencies += "de.fraunhofer.scai.bio.uima" % "UIMACorePipelet" % "7.0"
 libraryDependencies += "de.fraunhofer.scai.bio.uima" % "UIMATypeSystem" % "7.0"
 
+// FIX multiple SLF4J (http://stackoverflow.com/questions/25208943)
+//libraryDependencies ~= { _.map(_.exclude("org.slf4j", "slf4j-log4j12")) }
+
 fork in run := true
 
 // Bring the system property to the forked Java VM

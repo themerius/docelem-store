@@ -1,20 +1,25 @@
 package eu.themerius.docelemstore
 
 import org.scalatest.{ BeforeAndAfterAll, FlatSpecLike, Matchers }
-import akka.actor.{ Actor, Props, ActorSystem }
+import akka.actor.{ Props, ActorSystem }
 import akka.testkit.{ ImplicitSender, TestKit, TestActorRef }
 import scala.concurrent.duration._
 
+import akka.testkit.EventFilter
+import com.typesafe.config.ConfigFactory
+
 import java.nio.file.{ Files, Paths }
 
-class HelloAkkaSpec(_system: ActorSystem)
+class GateActorSpec(_system: ActorSystem)
   extends TestKit(_system)
   with ImplicitSender
   with Matchers
   with FlatSpecLike
   with BeforeAndAfterAll {
 
-  def this() = this(ActorSystem("docelem-store-test"))
+  def this() = this(ActorSystem("testsystem", ConfigFactory.parseString("""
+    akka.loggers = ["akka.testkit.TestEventListener"]
+  """)))
 
   override def afterAll: Unit = {
     system.shutdown()
@@ -27,6 +32,9 @@ class HelloAkkaSpec(_system: ActorSystem)
     new String(bytes, "UTF-8")
   }
 
+  // TODO: send sample message to broker
+  // TODO: receive message from broker and send to actor
+
   "An Gate" should "be able to consume a gzipped XCAS" in {
     val gate = TestActorRef(Props[Gate])
 
@@ -35,9 +43,12 @@ class HelloAkkaSpec(_system: ActorSystem)
       "event" -> "ExtractNNEs"
     )
 
-    gate ! Consume(header, getSampleXCAS)
+    EventFilter.info(pattern="got gzipped XCAS and configure for NNE extraction", occurrences=1) intercept {
+      EventFilter.info(pattern="has written 42 mutations", occurrences=2) intercept {
+        gate ! Consume(header, getSampleXCAS)
+      }
+    }
 
-    gate.underlyingActor.asInstanceOf[Gate].brokerUsr should be("admin")
   }
 
   // it should "be able to get a new greeting" in {
