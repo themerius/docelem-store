@@ -47,7 +47,7 @@ class AccumuloFeeder extends Actor {
         val spec = artifact.meta.specification
         val fingerprint = Integer.toHexString(artifact.meta.fingerprint)
 
-        val columnQualifier = s"${semantics}\0${spec}\0${fingerprint}"
+        val columnQualifier = s"${semantics}\0${spec}\0${fingerprint}".getBytes
 
         val mutation = new Mutation(sigmatics)
         mutation.put(pragmatics, columnQualifier, artifact.model)
