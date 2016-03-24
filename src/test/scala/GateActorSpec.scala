@@ -19,6 +19,7 @@ class GateActorSpec(_system: ActorSystem)
 
   def this() = this(ActorSystem("testsystem", ConfigFactory.parseString("""
     akka.loggers = ["akka.testkit.TestEventListener"]
+    akka.loglevel = "DEBUG"
   """)))
 
   override def afterAll: Unit = {
@@ -51,10 +52,33 @@ class GateActorSpec(_system: ActorSystem)
 
   }
 
-  // it should "be able to get a new greeting" in {
-  //   val greeter = system.actorOf(Props[Greeter], "greeter")
-  //   greeter ! WhoToGreet("testkit")
-  //   greeter ! Greet
-  //   expectMsgType[Greeting].message.toString should be("hello, testkit")
-  // }
+  it should "be able reply on queries for single document elements" in {
+    val gate = TestActorRef(Props[Gate])
+
+    val header = Map(
+      "content-type" -> "xml",
+      "event" -> "query-single-docelem",
+      "reply-to" -> "/topic/docelem-test-case",
+      "tracking-nr" -> "docelem-test"
+    )
+
+    val html =
+      <head>
+        <meta name="event" content="query-single-docelem" />
+        <meta name="docelem-id" content="header/pmid:161461" />
+        <meta name="license" content="" />
+      </head>
+
+      // IDEA: enrich with RDFa etc. -> The query interpreter should be able to interpret this?
+      // val freetextQuery = <p>I would like to have the complete document element §header/pmid:161461.</p>
+
+    EventFilter.debug(message=s"""Query(SingleDocElem,<query><meta content="header/pmid:161461" name="docelem-id"/></query>)""", occurrences=1) intercept {
+      gate ! Consume(header, html.toString)
+    }
+
+    EventFilter.info(pattern=s"send ${header("tracking-nr")} back to broker at ${header("reply-to")}", occurrences=1) intercept {
+      gate ! Consume(header, html.toString)
+    }
+  }
+
 }

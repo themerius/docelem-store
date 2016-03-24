@@ -126,6 +126,8 @@ class Gate extends Actor {
     Router(RoundRobinRoutingLogic(), routees)
   }
 
+  val accumuloQuery = context.actorOf(Props[AccumuloQueryer])
+
   // Consume and distribute messages
   def receive = {
     case Consume(header: Map[String, String], textContent: String) => {
@@ -163,6 +165,13 @@ class Gate extends Actor {
             ), sender()
           )
         }
+        case ("xml", "query-single-docelem") => {
+          log.info("(Gate) got html and configure for query single docelem")
+          val builder = new XmlModel with XmlSingleDocElemQueryBuilder
+          val data = textContent.getBytes("UTF-8")
+          val reply = Reply("", replyTo, trackingNr)
+          accumuloQuery ! BuildQuery(builder, data, reply)
+        }
         case (x, y) => {
           latestErrorLog = s"No rules for ($x, $y)."
           println(latestErrorLog)
@@ -194,6 +203,7 @@ class Gate extends Actor {
       val message = session.createTextMessage(content)
       message.setStringProperty("tracking-nr", trackingNr)
       producer.send(message)
+      log.info(s"(Gate/Reply) send ${trackingNr} back to broker at ${to}.")
     }
 
     case Accounting(event, query, trackingNr, unit) => {

@@ -48,6 +48,7 @@ javaOptions in run += s"-Dconfig.file=${System.getProperty("config.file")}"
 //javaOptions in run += "-XX:NewRatio=1"
 //javaOptions in run += "-XX:+UseParallelOldGC"
 javaOptions in run += "-Dhawtdispatch.threads=4"
+javaOptions in test += "-XX:+CMSClassUnloadingEnabled"
 
 // Avoid assembly errors
 assemblyMergeStrategy in assembly := {

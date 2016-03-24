@@ -1,6 +1,7 @@
 package eu.themerius.docelemstore
 
 import java.net.URI
+import scala.xml.Node
 
 case class Transform2DocElem(model: ModelTransRules, data: Array[Byte])
 
@@ -26,3 +27,9 @@ case class Meta(
 
 // A sequence of DocElems or any KnowledgeArtifacts is a Corpus.
 case class Corpus(artifacts: Seq[KnowledgeArtifact])
+
+object QueryTarget extends Enumeration {
+  val SingleDocElem, DocumentTopology, SemanticSearch = Value
+}
+
+case class Query(target: QueryTarget.Value, xml: Node)
