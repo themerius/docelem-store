@@ -9,7 +9,8 @@ import de.fraunhofer.scai.bio.uima.core.deploy.AbstractDeployer
 import de.fraunhofer.scai.bio.uima.core.provenance.ProvenanceUtils
 import org.apache.uima.fit.util.JCasUtil
 import de.fraunhofer.scai.bio.msa.util.MessageUtils
-import de.fraunhofer.scai.bio.extraction.types.text.NormalizedNamedEntity;
+import de.fraunhofer.scai.bio.extraction.types.text.NormalizedNamedEntity
+import de.fraunhofer.scai.bio.extraction.types.meta.Person;
 import org.apache.uima.cas.CAS
 
 import scala.util.hashing.MurmurHash3
@@ -53,7 +54,7 @@ trait ExtractNNEs extends CasModel with ModelTransRules  {
       // TODO: we need the sigmatic id type in the uima type system!?
     }
 
-    // TODO: Sub-Iterator for Title or Abstract or Sentences?
+    // TODO: Sub-Iterator for Title or Abstract/GenericDocElem or Sentences?
     val it = JCasUtil.iterator(view, classOf[NormalizedNamedEntity])
 
     var artifacts = Seq[KnowledgeArtifact]()
@@ -114,11 +115,13 @@ trait ExtractSCAIViewAbstracts extends CasModel with ModelTransRules  {
       Meta(new URI("scaiview.abstract"))
     ) +: artifacts
 
+    val authors = header.getAuthors.toArray.map(_.asInstanceOf[Person]).map(p => s"${p.getForename} ${p.getSurname}").mkString(", ")
+
     artifacts = KnowledgeArtifact(
       new URI(sigmaticUri),
       new URI(layerUri),
       new URI("header/authors"),
-      header.getAuthors.toStringArray.mkString(", ").getBytes,
+      authors.getBytes,
       Meta(new URI("freetext"))
     ) +: artifacts
 
@@ -126,7 +129,7 @@ trait ExtractSCAIViewAbstracts extends CasModel with ModelTransRules  {
       new URI(sigmaticUri),
       new URI(layerUri),
       new URI("header/publicationDate"),
-      header.getPublicationDate.getDate.toString.getBytes,
+      String.format("%tFT%<tRZ", header.getPublicationDate.getDate).getBytes,
       Meta(new URI("freetext"))
     ) +: artifacts
 

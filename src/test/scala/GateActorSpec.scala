@@ -52,6 +52,22 @@ class GateActorSpec(_system: ActorSystem)
 
   }
 
+  it should "be able to consume a gzipped XCAS and extract nnes and abstract" in {
+    val gate = TestActorRef(Props[Gate])
+
+    val header = Map(
+      "content-type" -> "gzip-xml",
+      "event" -> "ExtractNNEs & ExtractSCAIViewAbstracts"
+    )
+
+    EventFilter.info(pattern="got gzipped XCAS and configure for NNE extraction and SCAIView abstract extraction", occurrences=1) intercept {
+      EventFilter.info(pattern="has written 45 mutations", occurrences=1) intercept {
+        gate ! Consume(header, getSampleXCAS)
+      }
+    }
+
+  }
+
   it should "be able reply on queries for single document elements" in {
     val gate = TestActorRef(Props[Gate])
 

@@ -29,8 +29,10 @@ trait XmlSingleDocElemQueryBuilder extends XmlModel with QueryBuilder {
     })
     // TODO: check if query is really valid
     // TODO: specify <undefined cause="..." /> for all projects! Also suitable for log entries? Or something like a error-docelem/corpus?
-    val vquery = if (query.nonEmpty) query else <undefined />
-    Query(QueryTarget.SingleDocElem, <query>{vquery}</query>)
+    if (query.nonEmpty)
+      Query(QueryTarget.SingleDocElem, <query>{query}</query>)
+    else
+      Query(QueryTarget.Invalid, <query><undefined /></query>)
   }
 
 }

@@ -48,4 +48,4 @@ Soll ein BEL Statement mit allen Evidenzen geteilt werden?
 Oder sollen wir lieber ein Statement pro Evidenz erstellen?
 Weil wenn wir die Kuration überlegen sollte das Statement ja eher an die Evidenz gekoppelt sein.
 Sollen wir ein gesamtes BEL-Dokument dort ablegen? Also mit Imports etc.? => Müssen wir ja fast, damit das BEL-Modell auch für sich selbst stehen kann / in sich geschlossen ist.
-Man sollte auch beachten, dass man evneutell ein BEL-Dokument/Statement selbst im Dokument nennen/darstellen möchte.
+Man sollte auch beachten, dass man evneutell ein BEL-Dokument/Statement für sich selbst stehend im Dokument nennen/darstellen möchte.

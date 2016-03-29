@@ -29,7 +29,7 @@ case class Meta(
 case class Corpus(artifacts: Seq[KnowledgeArtifact])
 
 object QueryTarget extends Enumeration {
-  val SingleDocElem, DocumentTopology, SemanticSearch = Value
+  val Invalid, SingleDocElem, DocumentTopology, SemanticSearch = Value
 }
 
 case class Query(target: QueryTarget.Value, xml: Node)
