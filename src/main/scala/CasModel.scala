@@ -10,6 +10,7 @@ import de.fraunhofer.scai.bio.uima.core.provenance.ProvenanceUtils
 import org.apache.uima.fit.util.JCasUtil
 import de.fraunhofer.scai.bio.msa.util.MessageUtils
 import de.fraunhofer.scai.bio.extraction.types.text.NormalizedNamedEntity
+import de.fraunhofer.scai.bio.extraction.types.text.Sentence
 import de.fraunhofer.scai.bio.extraction.types.meta.Person;
 import org.apache.uima.cas.CAS
 
@@ -67,8 +68,8 @@ trait ExtractNNEs extends CasModel with ModelTransRules  {
       val prefName = nne.getConcept.getPrefLabel.getValue.replaceAll("\\s", "_").toLowerCase
 
       val attrUri = s"concept/${dictId}:${prefName}"
-      val annotModel = s"{pos:[${nne.getBegin},${nne.getEnd}]}".getBytes("UTF-8")
-      // TODO: into annotModel should be a link to a attribut of the 0layer.
+      val annotModel = s"""{"begin": ${nne.getBegin}, "end": ${nne.getEnd}, "attr": "header/header"}""".getBytes("UTF-8")
+      // TODO: into annotModel should be a link to a attribut of the 0layer, e.g the sigmaticType.
 
       // Prepend all artifacts (this is O(1) on immutable lists)
       artifacts = KnowledgeArtifact(
@@ -77,6 +78,53 @@ trait ExtractNNEs extends CasModel with ModelTransRules  {
         new URI(attrUri),
         annotModel,
         Meta(new URI("annotation@v1"), MurmurHash3.bytesHash(annotModel))
+      ) +: artifacts
+    }
+
+    Corpus(artifacts ++ super.applyRules.artifacts)
+  }
+
+}
+
+trait ExtractSentences extends CasModel with ModelTransRules  {
+
+  override def applyRules = {
+    val jcas = cas.getJCas()
+    val view = UIMAViewUtils.getOrCreatePreferredView(jcas, AbstractDeployer.VIEW_DOCUMENT)
+    val header = UIMAViewUtils.getHeaderFromView(jcas)
+
+    val layerUri = "sentences"
+
+    val userId = ProvenanceUtils.getUserSuppliedID(jcas)
+    val pmidId = userId.split("PMID")
+
+    val sigmaticType = header.getDocumentConcept
+    val sigmaticUri = (sigmaticType, pmidId) match {
+      case (null, Array("", id)) => s"header/pmid:${id}"
+      case _ => s"${sigmaticType}/name:${userId}"
+      // TODO: we need the sigmatic id type in the uima type system!?
+    }
+
+    val it = JCasUtil.iterator(view, classOf[Sentence])
+
+    var artifacts = Seq[KnowledgeArtifact]()
+    var idx = 0
+
+    while (it.hasNext) {
+      val sent = it.next
+      idx = idx + 1
+
+      val attrUri = s"sentence/${idx}"
+      val jsonPosition = s"""{"begin": ${sent.getBegin}, "end": ${sent.getEnd}, "attr": "header/header"}""".getBytes("UTF-8")
+      // TODO: into jsonPosition should be a link to a attribut of the 0layer, e.g the sigmaticType.
+
+      // Prepend all artifacts (this is O(1) on immutable lists)
+      artifacts = KnowledgeArtifact(
+        new URI(sigmaticUri),
+        new URI(layerUri),
+        new URI(attrUri),
+        jsonPosition,
+        Meta(new URI("annotation@v1"), MurmurHash3.bytesHash(jsonPosition))
       ) +: artifacts
     }
 
@@ -134,6 +182,40 @@ trait ExtractSCAIViewAbstracts extends CasModel with ModelTransRules  {
     ) +: artifacts
 
     Corpus(artifacts ++ super.applyRules.artifacts)
+  }
+
+}
+
+trait NneQueryBuilder extends CasModel with QueryBuilder {
+
+  def buildQuery = {
+    val jcas = cas.getJCas()
+    val view = UIMAViewUtils.getOrCreatePreferredView(jcas, AbstractDeployer.VIEW_DOCUMENT)
+    val header = UIMAViewUtils.getHeaderFromView(jcas)
+    val userId = ProvenanceUtils.getUserSuppliedID(jcas)
+
+    // TODO: generic layer... we need a better filled typesystem...
+    val layer = s"header/name:$userId"
+
+    val it = JCasUtil.iterator(view, classOf[NormalizedNamedEntity])
+
+    var query = Seq.empty[scala.xml.Node]
+
+    while (it.hasNext) {
+      val nne = it.next
+
+      val dictId = nne.getConcept.getIdentifierSource.replace(".syn", "").toLowerCase
+      val conceptId = nne.getConcept.getIdentifier
+      val prefName = nne.getConcept.getPrefLabel.getValue.replaceAll("\\s", "_").toLowerCase
+
+      query :+= <concept>{s"${layer}!concept/${dictId}:${prefName}"}</concept>
+    }
+    // TODO: check if query is really valid
+    // TODO: specify <undefined cause="..." /> for all projects! Also suitable for log entries? Or something like a error-docelem/corpus?
+    if (query.nonEmpty)
+      Query(QueryTarget.SemanticSearch, <query>{query}</query>)
+    else
+      Query(QueryTarget.Invalid, <query><undefined /></query>)
   }
 
 }

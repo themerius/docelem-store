@@ -56,6 +56,7 @@ class AccumuloFeeder extends Actor {
 
       // send mutations to accumulo
       artifactsWriter.addMutations(mutations.toIterable.asJava)
+      artifactsWriter.flush
       log.info(s"(artifactsWriter) has written ${mutations.size} mutations.")
     }
 
@@ -72,7 +73,7 @@ class AccumuloFeeder extends Actor {
         // calculate a partition ID:
         // every entry with the same 'document id' (means doc elem id)
         // will be placed into the same partition
-        val partitionId = MurmurHash3.stringHash(docElemId) % NUM_PARTITIONS
+        val partitionId = Math.abs(MurmurHash3.stringHash(docElemId)) % NUM_PARTITIONS
 
         // Schema:
         // PARTITON : layer!attribute : docElemId : (None)
@@ -83,6 +84,7 @@ class AccumuloFeeder extends Actor {
 
       // send mutations to accumulo
       indexWriter.addMutations(mutations.force.toIterable.asJava)
+      indexWriter.flush
       log.info(s"(indexWriter) has written ${mutations.size} mutations.")
     }
 

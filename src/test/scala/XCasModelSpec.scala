@@ -29,7 +29,7 @@ class XCasModelSpec extends FlatSpec with Matchers {
     corpus.artifacts.size should be (42)
     corpus.artifacts(0).sigmatics should equal (new URI("header/pmid:161461"))
     corpus.artifacts(0).pragmatics should equal (new URI("run/name:scaiview-run-1"))
-    new String(corpus.artifacts(0).model) should include ("pos")
+    new String(corpus.artifacts(0).model) should include ("begin")
   }
 
   it should "extract NNEs and Abstracts as Corpus when mixing-in the ExtractNNEs and ExtractSCAIViewAbstracts rule" in {

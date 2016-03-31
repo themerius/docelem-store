@@ -39,6 +39,13 @@ libraryDependencies += "de.fraunhofer.scai.bio.uima" % "UIMATypeSystem" % "7.0"
 // FIX multiple SLF4J (http://stackoverflow.com/questions/25208943)
 //libraryDependencies ~= { _.map(_.exclude("org.slf4j", "slf4j-log4j12")) }
 
+lazy val root = (project in file(".")).
+  enablePlugins(BuildInfoPlugin).
+  settings(
+    buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sbtVersion),
+    buildInfoPackage := "eu.themerius.docelemstore"
+  )
+
 fork in run := true
 
 // Bring the system property to the forked Java VM

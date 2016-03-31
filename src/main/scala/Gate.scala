@@ -30,7 +30,7 @@ case class Accounting(event: String, query: String, trackingNr: String, unit: St
 class Gate extends Actor {
 
   val log = Logging(context.system, this)
-  println(s"Gate ${context.dispatcher}")
+  log.info(s"Starting ${BuildInfo.name}:${BuildInfo.version}.")
 
   var latestErrorLog = ""
 
@@ -160,7 +160,7 @@ class Gate extends Actor {
           log.info("(Gate) got gzipped XCAS and configure for NNE extraction and SCAIView abstract extraction")
           routerF.route(
             Transform2DocElem(
-              new GzippedXCasModel with ExtractNNEs with ExtractSCAIViewAbstracts,
+              new GzippedXCasModel with ExtractNNEs with ExtractSentences with ExtractSCAIViewAbstracts,
               textContent.getBytes("UTF-8")
             ), sender()
           )

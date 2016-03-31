@@ -22,6 +22,7 @@ class AccumuloQueryer extends Actor {
 
   val log = Logging(context.system, this)
   val xmlGenerator = new PrettyPrinter(80, 2)
+  val version = s"${BuildInfo.name}:${BuildInfo.version}"
 
   def receive = {
 
@@ -56,7 +57,7 @@ class AccumuloQueryer extends Actor {
       //      <layer>
       //        <attr><attr>...
       val xmlCorpus =
-        <corpus>{layers.map(de => <docelem uri={de._1.toString}>{de._2.map(la => <layer uri={la._1.toString}>{la._2.map(ar => <attr uri={ar.semantics.toString} spec={ar.meta.specification.toString}>{scala.xml.PCData(new String(ar.model, "UTF-8"))}</attr>)}</layer>)}</docelem>)}</corpus>
+        <corpus by={version}>{layers.map(de => <docelem uri={de._1.toString}>{de._2.map(la => <layer uri={la._1.toString}>{la._2.map(ar => <attr uri={ar.semantics.toString} spec={ar.meta.specification.toString}>{scala.xml.PCData(new String(ar.model, "UTF-8"))}</attr>)}</layer>)}</docelem>)}</corpus>
 
       context.parent ! Reply(xmlGenerator.format(xmlCorpus), reply.to, reply.trackingNr)
       log.info(s"(Reply) send to ${reply.to}.")

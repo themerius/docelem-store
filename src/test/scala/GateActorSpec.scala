@@ -57,11 +57,11 @@ class GateActorSpec(_system: ActorSystem)
 
     val header = Map(
       "content-type" -> "gzip-xml",
-      "event" -> "ExtractNNEs & ExtractSCAIViewAbstracts"
+      "event" -> "xxx"
     )
 
     EventFilter.info(pattern="got gzipped XCAS and configure for NNE extraction and SCAIView abstract extraction", occurrences=1) intercept {
-      EventFilter.info(pattern="has written 45 mutations", occurrences=1) intercept {
+      EventFilter.info(pattern="has written 48 mutations", occurrences=1) intercept {
         gate ! Consume(header, getSampleXCAS)
       }
     }
