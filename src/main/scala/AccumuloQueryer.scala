@@ -18,6 +18,7 @@ case class BuildQuery(builder: QueryBuilder, data: Array[Byte], reply: Reply)
 case class Scan(query: Query, reply: Reply)
 case class PrepareReply(corpus: Corpus, reply: Reply)
 
+// TODO: rename to AccumuloRetrieval?
 class AccumuloQueryer extends Actor {
 
   val log = Logging(context.system, this)
@@ -66,7 +67,7 @@ class AccumuloQueryer extends Actor {
 
   def scanSingleDocelem(uri: URI): Corpus = {
     val auths = new Authorizations()
-    val scan = AccumuloConnectionFactory.get.createScanner("knowledge_artifacts", auths)
+    val scan = AccumuloConnectionFactory.get.createScanner("knowledge_artifacts_dev", auths)
     scan.setRange(Range.exact(uri.toString))
     //scan.fetchColumn(new Text(typ), new Text(uid))
 
