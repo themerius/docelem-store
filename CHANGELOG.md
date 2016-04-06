@@ -25,7 +25,16 @@ And [Keep a CHANGELOG](http://keepachangelog.com):
     - `Fixed` for any bug fixes. (+PATCH)
     - `Security` to invite users to upgrade in case of vulnerabilities. (+PATCH)
 
-## 0.3.0 - n/a
+## 0.3.0 - 2016-04-06
+### Added
+- Dependency to SCAI pipelet core framework, so it is now possible to direclty process XCAS
+- Introducing a new schema for document elements
+- New implementations of Accumulo actors for retrieval/query and feeding
+- Abstractions for Domain Specific Models and Query building
+- Added some simple unit tests with sample data
+
+### Changed
+- Updated to Akka 2.4.2 and Scala 2.11.8
 
 ## 0.2.0 - 2015-12-17
 ### Fixed
