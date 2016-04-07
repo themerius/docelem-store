@@ -36,3 +36,20 @@ trait XmlSingleDocElemQueryBuilder extends XmlModel with QueryBuilder {
   }
 
 }
+
+trait XmlTopologyQueryBuilder extends XmlModel with QueryBuilder {
+
+  def buildQuery = {
+    val query = (xml \\ "meta").filter( _ match {
+      case m @ <meta /> if (m \ "@name").text == "superordinate-docelem-id" => true
+      case _ => false
+    })
+    // TODO: check if query is really valid
+    // TODO: specify <undefined cause="..." /> for all projects! Also suitable for log entries? Or something like a error-docelem/corpus?
+    if (query.nonEmpty)
+      Query(QueryTarget.Topology, <query>{query}</query>)
+    else
+      Query(QueryTarget.Invalid, <query><undefined /></query>)
+  }
+
+}

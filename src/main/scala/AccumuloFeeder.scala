@@ -22,8 +22,8 @@ class AccumuloFeeder extends Actor {
   val NUM_PARTITIONS = 32
 
   val configWriter = new BatchWriterConfig
-  val artifactsWriter = AccumuloConnectionFactory.get.createBatchWriter("knowledge_artifacts_dev", configWriter)
-  val indexWriter = AccumuloConnectionFactory.get.createBatchWriter("semantic_index_dev", configWriter)
+  val artifactsWriter = AccumuloConnectionFactory.get.createBatchWriter(AccumuloConnectionFactory.ARTIFACTS, configWriter)
+  val indexWriter = AccumuloConnectionFactory.get.createBatchWriter(AccumuloConnectionFactory.SEMANTIC_INDEX, configWriter)
 
   def receive = {
 

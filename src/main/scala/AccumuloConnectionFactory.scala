@@ -43,18 +43,20 @@ object AccumuloConnectionFactory {
   //   :: layer_uri
   //   :: attribute_uri \0 model_spec_uri \0 fingerprint
   //   :: domain_model
-  if (!ops.exists("knowledge_artifacts_dev")) {
-    ops.create("knowledge_artifacts_dev")
-    ops.setProperty("knowledge_artifacts_dev", "table.bloom.enabled", "true")
+  val ARTIFACTS = "knowledge_artifacts_dev"
+  if (!ops.exists(ARTIFACTS)) {
+    ops.create(ARTIFACTS)
+    ops.setProperty(ARTIFACTS, "table.bloom.enabled", "true")
   }
 
   // shard_id
   //   :: layer_uri ! attribute_uri
   //   :: docelem_uri
   //   :: nil
-  if (!ops.exists("semantic_index_dev")) {
-    ops.create("semantic_index_dev")
-    ops.setProperty("semantic_index_dev", "table.bloom.enabled", "true")
+  val SEMANTIC_INDEX = "semantic_index_dev"
+  if (!ops.exists(SEMANTIC_INDEX)) {
+    ops.create(SEMANTIC_INDEX)
+    ops.setProperty(SEMANTIC_INDEX, "table.bloom.enabled", "true")
   }
 
   // GRANT permissions

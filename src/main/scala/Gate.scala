@@ -172,6 +172,13 @@ class Gate extends Actor {
           val reply = Reply("", replyTo, trackingNr)
           accumuloQuery ! BuildQuery(builder, data, reply)
         }
+        case ("xml", "query-topology") => {
+          log.info("(Gate) got html and configure for query topology")
+          val builder = new XmlModel with XmlTopologyQueryBuilder
+          val data = textContent.getBytes("UTF-8")
+          val reply = Reply("", replyTo, trackingNr)
+          accumuloQuery ! BuildQuery(builder, data, reply)
+        }
         case (x, y) => {
           latestErrorLog = s"No rules for ($x, $y)."
           println(latestErrorLog)

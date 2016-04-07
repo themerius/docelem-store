@@ -11,7 +11,8 @@ import org.apache.uima.fit.util.JCasUtil
 import de.fraunhofer.scai.bio.msa.util.MessageUtils
 import de.fraunhofer.scai.bio.extraction.types.text.NormalizedNamedEntity
 import de.fraunhofer.scai.bio.extraction.types.text.Sentence
-import de.fraunhofer.scai.bio.extraction.types.meta.Person;
+import de.fraunhofer.scai.bio.extraction.types.text.documentelement.structure.Paragraph
+import de.fraunhofer.scai.bio.extraction.types.meta.Person
 import org.apache.uima.cas.CAS
 
 import scala.util.hashing.MurmurHash3
@@ -19,7 +20,31 @@ import scala.util.hashing.MurmurHash3
 
 
 trait CasModel extends Model {
+
   var cas: CAS = _
+
+  def jcas = cas.getJCas()
+  def header = UIMAViewUtils.getHeaderFromView(jcas)
+
+  def layerUri = {
+    ProvenanceUtils.getDocumentCollectionName(jcas)
+  }
+
+  def sigmaticUri = {
+    val userId = ProvenanceUtils.getUserSuppliedID(jcas)
+    val pmidId = userId.split("PMID")
+    var idType = "pmid"
+
+    if (header.getDocumentConcept != null) {
+      idType = header.getDocumentConcept.getIdentifier
+    }
+
+    pmidId match {
+      case Array("", id) => s"header/${idType}:${id}"
+      case _ => s"header/${idType}:${userId}"
+    }
+  }
+
 }
 
 class GzippedXCasModel extends CasModel {
@@ -38,22 +63,8 @@ class GzippedXCasModel extends CasModel {
 trait ExtractNNEs extends CasModel with ModelTransRules  {
 
   override def applyRules = {
-    val jcas = cas.getJCas()
     val view = UIMAViewUtils.getOrCreatePreferredView(jcas, AbstractDeployer.VIEW_DOCUMENT)
     val header = UIMAViewUtils.getHeaderFromView(jcas)
-
-    val annotationLayer = ProvenanceUtils.getDocumentCollectionName(jcas)
-    val layerUri = s"run/name:${annotationLayer}"
-
-    val userId = ProvenanceUtils.getUserSuppliedID(jcas)
-    val pmidId = userId.split("PMID")
-
-    val sigmaticType = header.getDocumentConcept
-    val sigmaticUri = (sigmaticType, pmidId) match {
-      case (null, Array("", id)) => s"header/pmid:${id}"
-      case _ => s"${sigmaticType}/name:${userId}"
-      // TODO: we need the sigmatic id type in the uima type system!?
-    }
 
     // TODO: Sub-Iterator for Title or Abstract/GenericDocElem or Sentences?
     val it = JCasUtil.iterator(view, classOf[NormalizedNamedEntity])
@@ -68,8 +79,7 @@ trait ExtractNNEs extends CasModel with ModelTransRules  {
       val prefName = nne.getConcept.getPrefLabel.getValue.replaceAll("\\s", "_").toLowerCase
 
       val attrUri = s"concept/${dictId}:${prefName}"
-      val annotModel = s"""{"begin": ${nne.getBegin}, "end": ${nne.getEnd}, "attr": "header/header"}""".getBytes("UTF-8")
-      // TODO: into annotModel should be a link to a attribut of the 0layer, e.g the sigmaticType.
+      val annotModel = s"""{"begin": ${nne.getBegin}, "end": ${nne.getEnd}, "attr": "header/header", "ref": "${attrUri}"}""".getBytes("UTF-8")
 
       // Prepend all artifacts (this is O(1) on immutable lists)
       artifacts = KnowledgeArtifact(
@@ -94,16 +104,6 @@ trait ExtractSentences extends CasModel with ModelTransRules  {
     val header = UIMAViewUtils.getHeaderFromView(jcas)
 
     val layerUri = "sentences"
-
-    val userId = ProvenanceUtils.getUserSuppliedID(jcas)
-    val pmidId = userId.split("PMID")
-
-    val sigmaticType = header.getDocumentConcept
-    val sigmaticUri = (sigmaticType, pmidId) match {
-      case (null, Array("", id)) => s"header/pmid:${id}"
-      case _ => s"${sigmaticType}/name:${userId}"
-      // TODO: we need the sigmatic id type in the uima type system!?
-    }
 
     val it = JCasUtil.iterator(view, classOf[Sentence])
 
@@ -133,6 +133,100 @@ trait ExtractSentences extends CasModel with ModelTransRules  {
 
 }
 
+// TODO: can we split that into multiple traits?
+trait ExtractParagraphsAndSentencesAndNne extends CasModel with ModelTransRules {
+
+  override def applyRules = {
+    val jcas = cas.getJCas()
+    val view = UIMAViewUtils.getOrCreatePreferredView(jcas, AbstractDeployer.VIEW_DOCUMENT)
+
+    // This is because the paragraph is
+    val documentHeaderUri = sigmaticUri
+
+    var artifacts = Seq[KnowledgeArtifact]()
+    var nofParagraph = 0
+
+    val it = JCasUtil.iterator(view, classOf[Paragraph])
+
+    while (it.hasNext) {
+      val paragraph = it.next
+      nofParagraph = nofParagraph + 1
+
+      val hashString = s"${documentHeaderUri}:paragraph:${nofParagraph}"
+      val hash = MurmurHash3.stringHash(hashString)
+      val hashHex = Integer.toHexString(hash)
+
+      val paragraphUri = s"paragraph/murmur3:${hashHex}"
+
+      // Write topology information/annotation for paragraph
+      artifacts = KnowledgeArtifact(
+        new URI(paragraphUri),
+        new URI(documentHeaderUri),
+        new URI(s"topo/${documentHeaderUri}"),
+        s"${nofParagraph * 128}".getBytes,
+        Meta(new URI("topo-rank@v1"))
+      ) +: artifacts
+
+      // This paragraph is only a container for the senctences
+      val sit = JCasUtil.subiterate(view, classOf[Sentence], paragraph, true, false).iterator
+      var nofSentence = 0
+
+      while (sit.hasNext) {
+        val sentence = sit.next
+        nofSentence = nofSentence + 1
+
+        val text = sentence.getCoveredText
+        val hash = MurmurHash3.stringHash(text)
+        val hashHex = Integer.toHexString(hash)
+        val sentenceUri = s"sentence/murmur3:${hashHex}"
+
+        // Create the actual sentence
+        artifacts = KnowledgeArtifact(
+          new URI(sentenceUri),
+          new URI("_"),
+          new URI("sentence/sentence"),
+          text.getBytes,
+          Meta(new URI("freetext"), hash)
+        ) +: artifacts
+
+        // Create topology information
+        artifacts = KnowledgeArtifact(
+          new URI(sentenceUri),
+          new URI(documentHeaderUri),
+          new URI(s"topo/${paragraphUri}"),
+          s"${nofSentence * 128}".getBytes,
+          Meta(new URI("topo-rank@v1"))
+        ) +: artifacts
+
+        val nit = JCasUtil.subiterate(view, classOf[NormalizedNamedEntity], sentence, true, false).iterator
+
+        while (nit.hasNext) {
+          val nne = nit.next
+
+          val dictId = nne.getConcept.getIdentifierSource.replace(".syn", "").toLowerCase
+          val conceptId = nne.getConcept.getIdentifier
+          val prefName = nne.getConcept.getPrefLabel.getValue.replaceAll("\\s", "_").toLowerCase
+
+          val attrUri = s"concept/${dictId}:${prefName}"
+          val annotModel = s"""{"begin": ${nne.getBegin - sentence.getBegin}, "end": ${nne.getEnd - sentence.getBegin}, "attr": "header/header", "ref": "${attrUri}"}""".getBytes("UTF-8")
+
+          // Add the (concept) annotations to the sentence
+          artifacts = KnowledgeArtifact(
+            new URI(sentenceUri),
+            new URI(layerUri),
+            new URI(attrUri),
+            annotModel,
+            Meta(new URI("annotation@v1"), MurmurHash3.bytesHash(annotModel))
+          ) +: artifacts
+        }
+      }
+    }
+
+    Corpus(artifacts ++ super.applyRules.artifacts)
+  }
+
+}
+
 trait ExtractSCAIViewAbstracts extends CasModel with ModelTransRules  {
 
   override def applyRules = {
@@ -142,16 +236,6 @@ trait ExtractSCAIViewAbstracts extends CasModel with ModelTransRules  {
 
     //val annotationLayer = ProvenanceUtils.getDocumentCollectionName(jcas)
     val layerUri = "_"
-
-    val userId = ProvenanceUtils.getUserSuppliedID(jcas)
-    val pmidId = userId.split("PMID")
-
-    val sigmaticType = header.getDocumentConcept
-    val sigmaticUri = (sigmaticType, pmidId) match {
-      case (null, Array("", id)) => s"header/pmid:${id}"
-      case _ => s"${sigmaticType}/name:${userId}"
-      // TODO: we need the sigmatic id type in the uima type system!?
-    }
 
     var artifacts = Seq[KnowledgeArtifact]()
 

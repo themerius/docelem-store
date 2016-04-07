@@ -1,6 +1,6 @@
 name := """docelem-store"""
 
-version := "0.3.0"
+version := "0.4.0-SNAPSHOT"
 
 scalaVersion := "2.11.8"
 
@@ -37,7 +37,7 @@ libraryDependencies += "de.fraunhofer.scai.bio.uima" % "UIMACorePipelet" % "7.0"
 libraryDependencies += "de.fraunhofer.scai.bio.uima" % "UIMATypeSystem" % "7.0"
 
 // FIX multiple SLF4J (http://stackoverflow.com/questions/25208943)
-//libraryDependencies ~= { _.map(_.exclude("org.slf4j", "slf4j-log4j12")) }
+libraryDependencies ~= { _.map(_.exclude("ch.qos.logback", "logback-classic")) }
 
 lazy val root = (project in file(".")).
   enablePlugins(BuildInfoPlugin).
