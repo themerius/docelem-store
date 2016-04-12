@@ -25,6 +25,14 @@ And [Keep a CHANGELOG](http://keepachangelog.com):
     - `Fixed` for any bug fixes. (+PATCH)
     - `Security` to invite users to upgrade in case of vulnerabilities. (+PATCH)
 
+## 0.4.0 - 2016-04-12
+
+Essentially this is a release for showing the BEL/BELIEF layer prototype, for pre milestone dicsussions.
+
+### Added
+- CAS: trait for extracting paragraphs, sentences and NNEs.
+- Now able to query for a specific topology
+
 ## 0.3.0 - 2016-04-06
 ### Added
 - Dependency to SCAI pipelet core framework, so it is now possible to direclty process XCAS

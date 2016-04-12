@@ -28,7 +28,7 @@ class GateActorSpec(_system: ActorSystem)
   }
 
   def getSampleXCAS = {
-    val uri = getClass.getResource("/sample-gzip-xcas").toURI
+    val uri = getClass.getResource("/sample-epilepsy-gzip-xcas").toURI
     val bytes = Files.readAllBytes(Paths.get(uri))
     new String(bytes, "UTF-8")
   }
@@ -45,7 +45,7 @@ class GateActorSpec(_system: ActorSystem)
     )
 
     EventFilter.info(pattern="got gzipped XCAS and configure for NNE extraction", occurrences=1) intercept {
-      EventFilter.info(pattern="has written 42 mutations", occurrences=2) intercept {
+      EventFilter.info(pattern="has written 102 mutations", occurrences=2) intercept {
         gate ! Consume(header, getSampleXCAS)
       }
     }
@@ -61,7 +61,7 @@ class GateActorSpec(_system: ActorSystem)
     )
 
     EventFilter.info(pattern="got gzipped XCAS and configure for NNE extraction and SCAIView abstract extraction", occurrences=1) intercept {
-      EventFilter.info(pattern="has written 48 mutations", occurrences=1) intercept {
+      EventFilter.info(pattern="has written 119 mutations", occurrences=1) intercept {
         gate ! Consume(header, getSampleXCAS)
       }
     }
@@ -81,14 +81,14 @@ class GateActorSpec(_system: ActorSystem)
     val html =
       <head>
         <meta name="event" content="query-single-docelem" />
-        <meta name="docelem-id" content="header/pmid:161461" />
+        <meta name="docelem-id" content="header/pmid:25690317" />
         <meta name="license" content="" />
       </head>
 
       // IDEA: enrich with RDFa etc. -> The query interpreter should be able to interpret this?
       // val freetextQuery = <p>I would like to have the complete document element §header/pmid:161461.</p>
 
-    EventFilter.debug(message=s"""Query(SingleDocElem,<query><meta content="header/pmid:161461" name="docelem-id"/></query>)""", occurrences=1) intercept {
+    EventFilter.debug(message=s"""Query(SingleDocElem,<query><meta content="header/pmid:25690317" name="docelem-id"/></query>)""", occurrences=1) intercept {
       gate ! Consume(header, html.toString)
     }
 

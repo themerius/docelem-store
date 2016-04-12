@@ -10,7 +10,7 @@ import java.net.URI
 class XCasModelSpec extends FlatSpec with Matchers {
 
   def getSampleGzippedXCas: Array[Byte] = {
-    val uri = getClass.getResource("/sample-gzip-xcas").toURI
+    val uri = getClass.getResource("/sample-epilepsy-gzip-xcas").toURI
     Files.readAllBytes(Paths.get(uri))
   }
 
@@ -26,9 +26,9 @@ class XCasModelSpec extends FlatSpec with Matchers {
     casModel.deserialize(getSampleGzippedXCas)
     val corpus = casModel.applyRules
 
-    corpus.artifacts.size should be (42)
-    corpus.artifacts(0).sigmatics should equal (new URI("header/pmid:161461"))
-    corpus.artifacts(0).pragmatics should equal (new URI("run/name:scaiview-run-1"))
+    corpus.artifacts.size should be (102)
+    corpus.artifacts(0).sigmatics should equal (new URI("header/pmid:25690317"))
+    corpus.artifacts(0).pragmatics should equal (new URI("scaiview-run-1"))
     new String(corpus.artifacts(0).model) should include ("begin")
   }
 
@@ -37,10 +37,10 @@ class XCasModelSpec extends FlatSpec with Matchers {
     casModel.deserialize(getSampleGzippedXCas)
     val corpus = casModel.applyRules
 
-    corpus.artifacts.size should be (45)
+    corpus.artifacts.size should be (105)
     new String(
       corpus.artifacts.filter { arti =>
         arti.pragmatics == new URI("_") && arti.semantics == new URI("header/header")
-    }(0).model) should include ("In 7 series comparisons")
+    }(0).model) should include ("Fever-associated syndromic")
   }
 }
