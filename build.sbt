@@ -7,6 +7,8 @@ scalaVersion := "2.11.8"
 resolvers += "SCAI Artifactory" at "http://scai-repos.scai.fraunhofer.de:8080/artifactory/libs-release-local/"
 resolvers += "SCAI Artifactory Snapshot" at "http://scai-repos.scai.fraunhofer.de:8080/artifactory/libs-snapshot-local/"
 
+resolvers += "JBoss Maven" at "https://repository.jboss.org/nexus/content/groups/public"
+
 credentials += Credentials(Path.userHome / ".m2" / "sbt-credentials")
 
 /* Example for ~/.m2/sbt-credentials
@@ -36,8 +38,13 @@ libraryDependencies += "org.fusesource.stompjms" % "stompjms-client" % "1.19"
 libraryDependencies += "de.fraunhofer.scai.bio.uima" % "UIMACorePipelet" % "7.0"
 libraryDependencies += "de.fraunhofer.scai.bio.uima" % "UIMATypeSystem" % "7.0"
 
-// FIX multiple SLF4J (http://stackoverflow.com/questions/25208943)
+// Fixing loggers. Kick out all logger implementations and include a simple SLF4J.
+// Multiple SLF4J (http://stackoverflow.com/questions/25208943)
+// Configure simple SLF4J (http://stackoverflow.com/questions/14544991)
 libraryDependencies ~= { _.map(_.exclude("ch.qos.logback", "logback-classic")) }
+libraryDependencies ~= { _.map(_.exclude("org.slf4j", "slf4j-log4j12")) }
+libraryDependencies ~= { _.map(_.exclude("log4j", "log4j")) }
+libraryDependencies += "org.slf4j" % "slf4j-simple" % "1.7.21"
 
 lazy val root = (project in file(".")).
   enablePlugins(BuildInfoPlugin).
@@ -59,7 +66,7 @@ javaOptions in test += "-XX:+CMSClassUnloadingEnabled"
 
 // Avoid assembly errors
 assemblyMergeStrategy in assembly := {
-  case PathList("META-INF", "MANIFEST.MF") => MergeStrategy.discard
+  case PathList("META-INF", xs @ _*) => MergeStrategy.discard
   case "reference.conf" => MergeStrategy.concat
   case x => MergeStrategy.last
 }
