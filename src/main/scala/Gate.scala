@@ -179,6 +179,13 @@ class Gate extends Actor {
           val reply = Reply("", replyTo, trackingNr)
           accumuloQuery ! BuildQuery(builder, data, reply)
         }
+        case ("xml", "query-topology-only-hierarchy") => {
+          log.info("(Gate) got html and configure for query topology only hierarchy")
+          val builder = new XmlModel with XmlTopologyOnlyHierarchyQueryBuilder
+          val data = textContent.getBytes("UTF-8")
+          val reply = Reply("", replyTo, trackingNr)
+          accumuloQuery ! BuildQuery(builder, data, reply)
+        }
         case (x, y) => {
           latestErrorLog = s"No rules for ($x, $y)."
           println(latestErrorLog)

@@ -1,6 +1,6 @@
 name := """docelem-store"""
 
-version := "0.4.0"
+version := "0.5.0-SNAPSHOT"
 
 scalaVersion := "2.11.8"
 
@@ -41,6 +41,7 @@ libraryDependencies += "de.fraunhofer.scai.bio.uima" % "UIMATypeSystem" % "7.0"
 // Fixing loggers. Kick out all logger implementations and include a simple SLF4J.
 // Multiple SLF4J (http://stackoverflow.com/questions/25208943)
 // Configure simple SLF4J (http://stackoverflow.com/questions/14544991)
+// and (http://www.slf4j.org/api/org/slf4j/impl/SimpleLogger.html)
 libraryDependencies ~= { _.map(_.exclude("ch.qos.logback", "logback-classic")) }
 libraryDependencies ~= { _.map(_.exclude("org.slf4j", "slf4j-log4j12")) }
 libraryDependencies ~= { _.map(_.exclude("log4j", "log4j")) }

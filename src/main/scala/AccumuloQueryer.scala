@@ -16,10 +16,12 @@ import java.util.ArrayList
 
 import QueryTarget.SingleDocElem
 import QueryTarget.Topology
+import QueryTarget.TopologyOnlyHierarchy
 
 case class BuildQuery(builder: QueryBuilder, data: Array[Byte], reply: Reply)
 case class Scan(query: Query, reply: Reply)
 case class PrepareReply(corpus: Corpus, reply: Reply)
+case class PrepareReplyOnlyHierarchy(xmlTopology: scala.xml.Node, reply: Reply)
 
 // TODO: rename to AccumuloRetrieval?
 class AccumuloQueryer extends Actor {
@@ -57,6 +59,16 @@ class AccumuloQueryer extends Actor {
       log.info(s"(Query/Topology) found ${corpus.artifacts.size} artifacts.")
     }
 
+    case Scan(Query(TopologyOnlyHierarchy, queryXml), reply) => {
+      val text = (queryXml \\ "meta" \ "@content")(0).text
+      val uri = new URI(text)
+      log.info(s"(Query/TopologyOnlyHierarchy) scanning for ${uri}.")
+
+      val xmlTopo = scanTopologyOnlyHierarchy(uri)
+      self ! PrepareReplyOnlyHierarchy(xmlTopo, reply)
+      log.info(s"(Query/TopologyOnlyHierarcy) found ${(xmlTopo \ "docelem").size} elements.")
+    }
+
     case PrepareReply(corpus, reply) => {
       // TODO: refactor Reply(answer, channel, trackingNr). create extra channel class which can test if the cannel string is valid?
 
@@ -75,6 +87,12 @@ class AccumuloQueryer extends Actor {
 
       context.parent ! Reply(xmlGenerator.format(xmlCorpus), reply.to, reply.trackingNr)
       log.info(s"(Reply) send to ${reply.to}.")
+    }
+
+    // TODO: awww, nice hack!
+    case PrepareReplyOnlyHierarchy(xmlTopology, reply) => {
+      context.parent ! Reply(xmlGenerator.format(xmlTopology), reply.to, reply.trackingNr)
+      log.info(s"(ReplyOnlyHierarchy) send to ${reply.to}.")
     }
   }
 
@@ -143,6 +161,31 @@ class AccumuloQueryer extends Actor {
       }
 
     Corpus(bartifacts.toSeq)
+  }
+
+  // TODO: restrict the resulting Corpus to only topology relevant infos/model (follows, rank etc.)
+  def scanTopologyOnlyHierarchy(uri: URI): scala.xml.Node = {
+    val auths = new Authorizations()
+    val scan = AccumuloConnectionFactory.get.createScanner(AccumuloConnectionFactory.ARTIFACTS, auths)
+    scan.fetchColumnFamily(new Text(uri.toString))
+
+    val docelems = for (entry <- scan.asScala) yield {
+      val key = entry.getKey
+      val value = new String(entry.getValue.get)
+
+      val row = entry.getKey.getRow.toString
+      val qual = key.getColumnQualifier.toString
+      val (semantics, spec, fingerprint) = qual.split("\u0000") match {
+        case Array(semantics, spec, fingerprint) => (semantics, spec, fingerprint)
+        case _ => ("", "", "0")
+      }
+
+      <docelem uri={row} follows={semantics} rank={value} />
+    }
+
+    <topology superordinate={uri.toString}>
+      {docelems}
+    </topology>
   }
 
 }
