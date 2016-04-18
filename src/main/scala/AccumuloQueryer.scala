@@ -137,6 +137,9 @@ class AccumuloQueryer extends Actor {
       ranges.add(Range.exact(entry.getKey.getRow))
     }
 
+    // add also the header of the topology
+    ranges.add(Range.exact(uri.toString))
+
     val bscan = AccumuloConnectionFactory.get.createBatchScanner(AccumuloConnectionFactory.ARTIFACTS, auths, 10)
     bscan.setRanges(ranges)
 
