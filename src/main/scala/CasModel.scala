@@ -11,20 +11,24 @@ import org.apache.uima.fit.util.JCasUtil
 import de.fraunhofer.scai.bio.msa.util.MessageUtils
 import de.fraunhofer.scai.bio.extraction.types.text.NormalizedNamedEntity
 import de.fraunhofer.scai.bio.extraction.types.text.Sentence
+import de.fraunhofer.scai.bio.extraction.types.text.NLPRelation
 import de.fraunhofer.scai.bio.extraction.types.text.documentelement.structure.Paragraph
 import de.fraunhofer.scai.bio.extraction.types.meta.Person
 import org.apache.uima.cas.CAS
 
 import scala.util.hashing.MurmurHash3
+import scala.collection.JavaConverters._
 
 
 
-trait CasModel extends Model {
+trait CasModel extends Model with Helper {
 
   var cas: CAS = _
 
   def jcas = cas.getJCas()
   def header = UIMAViewUtils.getHeaderFromView(jcas)
+
+  def view = UIMAViewUtils.getOrCreatePreferredView(jcas, AbstractDeployer.VIEW_DOCUMENT)
 
   def layerUri = {
     ProvenanceUtils.getDocumentCollectionName(jcas)
@@ -60,169 +64,156 @@ class GzippedXCasModel extends CasModel {
 
 }
 
-trait ExtractNNEs extends CasModel with ModelTransRules  {
+trait Helper {
+  def uri(par: Paragraph) = {
+    val hash = MurmurHash3.stringHash(par.getCoveredText)
+    val hashHex = Integer.toHexString(hash)
+    s"paragraph/murmur3:${hashHex}"
+  }
 
-  override def applyRules = {
-    val view = UIMAViewUtils.getOrCreatePreferredView(jcas, AbstractDeployer.VIEW_DOCUMENT)
-    val header = UIMAViewUtils.getHeaderFromView(jcas)
+  def uri(sen: Sentence) = {
+    val hash = MurmurHash3.stringHash(sen.getCoveredText)
+    val hashHex = Integer.toHexString(hash)
+    s"sentence/murmur3:${hashHex}"
+  }
 
-    // TODO: Sub-Iterator for Title or Abstract/GenericDocElem or Sentences?
-    val it = JCasUtil.iterator(view, classOf[NormalizedNamedEntity])
+  def dictId(nne: NormalizedNamedEntity) =
+    nne.getConcept.getIdentifierSource.replace(".syn", "").toLowerCase
 
-    var artifacts = Seq[KnowledgeArtifact]()
+  def conceptId(nne: NormalizedNamedEntity) =
+    nne.getConcept.getIdentifier
 
-    while (it.hasNext) {
-      val nne = it.next
+  def prefName(nne: NormalizedNamedEntity) =
+    nne.getConcept.getPrefLabel.getValue.replaceAll("\\s", "_").toLowerCase
 
-      val dictId = nne.getConcept.getIdentifierSource.replace(".syn", "").toLowerCase
-      val conceptId = nne.getConcept.getIdentifier
-      val prefName = nne.getConcept.getPrefLabel.getValue.replaceAll("\\s", "_").toLowerCase
+  def uri(nne: NormalizedNamedEntity) = {
+    s"concept/${dictId(nne)}:${prefName(nne)}"
+  }
+}
 
-      val attrUri = s"concept/${dictId}:${prefName}"
-      val annotModel = s"""{"begin": ${nne.getBegin}, "end": ${nne.getEnd}, "attr": "header/header", "ref": "${attrUri}"}""".getBytes("UTF-8")
+trait ExtractRelations extends CasModel with ModelTransRules  {
 
-      // Prepend all artifacts (this is O(1) on immutable lists)
-      artifacts = KnowledgeArtifact(
-        new URI(sigmaticUri),
-        new URI(layerUri),
-        new URI(attrUri),
-        annotModel,
-        Meta(new URI("annotation@v1"), MurmurHash3.bytesHash(annotModel))
-      ) +: artifacts
+  def relations(superordinate: Sentence) = JCasUtil.subiterate(view, classOf[NLPRelation], superordinate, true, false).iterator.asScala.map(sent => (sent, superordinate)).toList
+
+  def nneMembers(rel: NLPRelation) = rel.getMembersAsArrayList.asScala.filter(member => member.getEntity.isInstanceOf[NormalizedNamedEntity])
+
+  def genSearchArtifact(rel: NLPRelation, sen: Sentence) = {
+    nneMembers(rel).map{ member =>
+      val nne = member.getEntity.asInstanceOf[NormalizedNamedEntity]
+      KnowledgeArtifact(
+        new URI(uri(sen)),
+        new URI(s"belief/$layerUri"),
+        new URI(s"graph/${member.getRole.toLowerCase}/${dictId(nne)}:${prefName(nne)}"),
+        "".getBytes,
+        Meta(new URI("search-only"))
+      )
+    }
+  }
+
+  def genViewArtifacts(rel: NLPRelation, sen: Sentence, nofRels: Int) = {
+    val forView = nneMembers(rel).map{ member =>
+      val nne = member.getEntity.asInstanceOf[NormalizedNamedEntity]
+      s"""{
+        "begin": ${nne.getBegin - sen.getBegin},
+        "end": ${nne.getEnd - sen.getBegin},
+        "attr": "header/header",
+        "ref": "concept/${dictId(nne)}:${prefName(nne)}"
+      }"""
     }
 
-    Corpus(artifacts ++ super.applyRules.artifacts)
+    val posJson = s"""{
+      "pos": [${forView.mkString(",")}]
+    }""".getBytes
+
+    KnowledgeArtifact(
+      new URI(uri(sen)),
+      new URI(s"belief/$layerUri"),
+      new URI(s"bel/document:${nofRels}"),
+      posJson,
+      Meta(new URI("annotation@v1"), MurmurHash3.bytesHash(posJson))
+    )
+  }
+
+  def genContentArtifacts(rel: NLPRelation, sen: Sentence, nofRels: Int) = {
+    val bel = rel.getConcept.getPrefLabel.getValue.getBytes
+
+    KnowledgeArtifact(
+      new URI(uri(sen)),
+      new URI(s"belief/$layerUri"),
+      new URI(s"bel/document:${nofRels}"),
+      bel,
+      Meta(new URI("bel@v1.0"), MurmurHash3.bytesHash(bel))
+    )
   }
 
 }
 
-trait ExtractSentences extends CasModel with ModelTransRules  {
+trait ExtractParagraphs extends CasModel with ModelTransRules {
 
-  override def applyRules = {
-    val jcas = cas.getJCas()
-    val view = UIMAViewUtils.getOrCreatePreferredView(jcas, AbstractDeployer.VIEW_DOCUMENT)
-    val header = UIMAViewUtils.getHeaderFromView(jcas)
+  def paragraphs = JCasUtil.iterator(view, classOf[Paragraph]).asScala.toList
 
-    val layerUri = "sentences"
-
-    val it = JCasUtil.iterator(view, classOf[Sentence])
-
-    var artifacts = Seq[KnowledgeArtifact]()
-    var idx = 0
-
-    while (it.hasNext) {
-      val sent = it.next
-      idx = idx + 1
-
-      val attrUri = s"sentence/${idx}"
-      val jsonPosition = s"""{"begin": ${sent.getBegin}, "end": ${sent.getEnd}, "attr": "header/header"}""".getBytes("UTF-8")
-      // TODO: into jsonPosition should be a link to a attribut of the 0layer, e.g the sigmaticType.
-
-      // Prepend all artifacts (this is O(1) on immutable lists)
-      artifacts = KnowledgeArtifact(
-        new URI(sigmaticUri),
-        new URI(layerUri),
-        new URI(attrUri),
-        jsonPosition,
-        Meta(new URI("annotation@v1"), MurmurHash3.bytesHash(jsonPosition))
-      ) +: artifacts
-    }
-
-    Corpus(artifacts ++ super.applyRules.artifacts)
+  def genTopologyArtifact(par: Paragraph, nofParagraph: Int) = {
+    KnowledgeArtifact(
+      new URI(uri(par)),
+      new URI(sigmaticUri),
+      new URI(s"topo/${sigmaticUri}"),
+      s"${(1 + nofParagraph) * 128}".getBytes,
+      Meta(new URI("topo-rank@v1"))
+    )
   }
 
 }
 
-// TODO: can we split that into multiple traits?
-trait ExtractParagraphsAndSentencesAndNne extends CasModel with ModelTransRules {
+trait ExtractSentences extends CasModel with ModelTransRules {
 
-  override def applyRules = {
-    val jcas = cas.getJCas()
-    val view = UIMAViewUtils.getOrCreatePreferredView(jcas, AbstractDeployer.VIEW_DOCUMENT)
+  def sentences = JCasUtil.iterator(view, classOf[Sentence]).asScala.toList
 
-    // This is because the paragraph is
-    val documentHeaderUri = sigmaticUri
+  def sentences(superordinate: Paragraph) =  JCasUtil.subiterate(view, classOf[Sentence], superordinate, true, false).iterator.asScala.map(sent => (sent, superordinate)).toList
 
-    var artifacts = Seq[KnowledgeArtifact]()
-    var nofParagraph = 0
+  def genTopologyArtifact(sent: Sentence, par: Paragraph, nofSentence: Int) = {
+    KnowledgeArtifact(
+      new URI(uri(sent)),
+      new URI(sigmaticUri),
+      new URI(s"topo/${uri(par)}"),
+      s"${(1 + nofSentence) * 128}".getBytes,
+      Meta(new URI("topo-rank@v1"))
+    )
+  }
 
-    val it = JCasUtil.iterator(view, classOf[Paragraph])
+  def genContentArtifact(sent: Sentence) = {
+    val text = sent.getCoveredText.getBytes
+    KnowledgeArtifact(
+      new URI(uri(sent)),
+      new URI("_"),
+      new URI("sentence/sentence"),
+      text,
+      Meta(new URI("freetext"), MurmurHash3.bytesHash(text))
+    )
+  }
 
-    while (it.hasNext) {
-      val paragraph = it.next
-      nofParagraph = nofParagraph + 1
+}
 
-      val hashString = s"${documentHeaderUri}:paragraph:${nofParagraph}"
-      val hash = MurmurHash3.stringHash(hashString)
-      val hashHex = Integer.toHexString(hash)
+trait ExtractNNEs extends CasModel with ModelTransRules {
 
-      val paragraphUri = s"paragraph/murmur3:${hashHex}"
+  def nnes = JCasUtil.iterator(view, classOf[NormalizedNamedEntity]).asScala.toList
 
-      // Write topology information/annotation for paragraph
-      artifacts = KnowledgeArtifact(
-        new URI(paragraphUri),
-        new URI(documentHeaderUri),
-        new URI(s"topo/${documentHeaderUri}"),
-        s"${nofParagraph * 128}".getBytes,
-        Meta(new URI("topo-rank@v1"))
-      ) +: artifacts
+  def nnes(superordinate: Sentence) =  JCasUtil.subiterate(view, classOf[NormalizedNamedEntity], superordinate, true, false).iterator.asScala.map(nne => (nne, superordinate)).toList
 
-      // This paragraph is only a container for the senctences
-      val sit = JCasUtil.subiterate(view, classOf[Sentence], paragraph, true, false).iterator
-      var nofSentence = 0
+  def genAnnotationArtifact(nne: NormalizedNamedEntity, sen: Sentence) = {
+    val annotModel = s"""{
+      "begin": ${nne.getBegin - sen.getBegin},
+      "end": ${nne.getEnd - sen.getBegin},
+      "attr": "header/header",
+      "ref": "${uri(nne)}"
+    }""".getBytes
 
-      while (sit.hasNext) {
-        val sentence = sit.next
-        nofSentence = nofSentence + 1
-
-        val text = sentence.getCoveredText
-        val hash = MurmurHash3.stringHash(text)
-        val hashHex = Integer.toHexString(hash)
-        val sentenceUri = s"sentence/murmur3:${hashHex}"
-
-        // Create the actual sentence
-        artifacts = KnowledgeArtifact(
-          new URI(sentenceUri),
-          new URI("_"),
-          new URI("sentence/sentence"),
-          text.getBytes,
-          Meta(new URI("freetext"), hash)
-        ) +: artifacts
-
-        // Create topology information
-        artifacts = KnowledgeArtifact(
-          new URI(sentenceUri),
-          new URI(documentHeaderUri),
-          new URI(s"topo/${paragraphUri}"),
-          s"${nofSentence * 128}".getBytes,
-          Meta(new URI("topo-rank@v1"))
-        ) +: artifacts
-
-        val nit = JCasUtil.subiterate(view, classOf[NormalizedNamedEntity], sentence, true, false).iterator
-
-        while (nit.hasNext) {
-          val nne = nit.next
-
-          val dictId = nne.getConcept.getIdentifierSource.replace(".syn", "").toLowerCase
-          val conceptId = nne.getConcept.getIdentifier
-          val prefName = nne.getConcept.getPrefLabel.getValue.replaceAll("\\s", "_").toLowerCase
-
-          val attrUri = s"concept/${dictId}:${prefName}"
-          val annotModel = s"""{"begin": ${nne.getBegin - sentence.getBegin}, "end": ${nne.getEnd - sentence.getBegin}, "attr": "header/header", "ref": "${attrUri}"}""".getBytes("UTF-8")
-
-          // Add the (concept) annotations to the sentence
-          artifacts = KnowledgeArtifact(
-            new URI(sentenceUri),
-            new URI(layerUri),
-            new URI(attrUri),
-            annotModel,
-            Meta(new URI("annotation@v1"), MurmurHash3.bytesHash(annotModel))
-          ) +: artifacts
-        }
-      }
-    }
-
-    Corpus(artifacts ++ super.applyRules.artifacts)
+    KnowledgeArtifact(
+      new URI(uri(sen)),
+      new URI(layerUri),
+      new URI(uri(nne)),
+      annotModel,
+      Meta(new URI("annotation@v1"), MurmurHash3.bytesHash(annotModel))
+    )
   }
 
 }
@@ -266,40 +257,6 @@ trait ExtractSCAIViewAbstracts extends CasModel with ModelTransRules  {
     ) +: artifacts
 
     Corpus(artifacts ++ super.applyRules.artifacts)
-  }
-
-}
-
-trait NneQueryBuilder extends CasModel with QueryBuilder {
-
-  def buildQuery = {
-    val jcas = cas.getJCas()
-    val view = UIMAViewUtils.getOrCreatePreferredView(jcas, AbstractDeployer.VIEW_DOCUMENT)
-    val header = UIMAViewUtils.getHeaderFromView(jcas)
-    val userId = ProvenanceUtils.getUserSuppliedID(jcas)
-
-    // TODO: generic layer... we need a better filled typesystem...
-    val layer = s"header/name:$userId"
-
-    val it = JCasUtil.iterator(view, classOf[NormalizedNamedEntity])
-
-    var query = Seq.empty[scala.xml.Node]
-
-    while (it.hasNext) {
-      val nne = it.next
-
-      val dictId = nne.getConcept.getIdentifierSource.replace(".syn", "").toLowerCase
-      val conceptId = nne.getConcept.getIdentifier
-      val prefName = nne.getConcept.getPrefLabel.getValue.replaceAll("\\s", "_").toLowerCase
-
-      query :+= <concept>{s"${layer}!concept/${dictId}:${prefName}"}</concept>
-    }
-    // TODO: check if query is really valid
-    // TODO: specify <undefined cause="..." /> for all projects! Also suitable for log entries? Or something like a error-docelem/corpus?
-    if (query.nonEmpty)
-      Query(QueryTarget.SemanticSearch, <query>{query}</query>)
-    else
-      Query(QueryTarget.Invalid, <query><undefined /></query>)
   }
 
 }

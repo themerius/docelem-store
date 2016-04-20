@@ -61,7 +61,7 @@ class AccumuloFeeder extends Actor {
     }
 
     case Add2AnnotationIndex(corpus: Corpus) => {
-      val indexFilter = Set(new URI("annotation@v1"), new URI("topology@v1"))
+      val indexFilter = Set(new URI("annotation@v1"), new URI("topology@v1"), new URI("search-only"))
       val filteredCorpus = corpus.artifacts.view.filter {
         artifact => indexFilter.contains(artifact.meta.specification)
       }

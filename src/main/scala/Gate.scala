@@ -138,33 +138,69 @@ class Gate extends Actor {
       var trackingNr = header.getOrElse("tracking-nr", "")
 
       (contentType, event) match {
-        case ("gzip-xml", "ExtractNNEs") => {
-          log.info("(Gate) got gzipped XCAS and configure for NNE extraction")
-          routerF.route(
-            Transform2DocElem(
-              new GzippedXCasModel with ExtractNNEs,
-              textContent.getBytes("UTF-8")
-            ), sender()
-          )
-        }
-        case ("gzip-xml", "ExtractNNEs & ExtractSCAIViewAbstracts") => {
-          log.info("(Gate) got gzipped XCAS and configure for NNE extraction and SCAIView abstract extraction")
-          routerF.route(
-            Transform2DocElem(
-              new GzippedXCasModel with ExtractNNEs with ExtractSCAIViewAbstracts,
-              textContent.getBytes("UTF-8")
-            ), sender()
-          )
-        }
+        // case ("gzip-xml", "ExtractNNEs") => {
+        //   log.info("(Gate) got gzipped XCAS and configure for NNE extraction")
+        //   routerF.route(
+        //     Transform2DocElem(
+        //       new GzippedXCasModel with ExtractNNEs,
+        //       textContent.getBytes("UTF-8")
+        //     ), sender()
+        //   )
+        // }
+        // case ("gzip-xml", "ExtractNNEs & ExtractSCAIViewAbstracts") => {
+        //   log.info("(Gate) got gzipped XCAS and configure for NNE extraction and SCAIView abstract extraction")
+        //   routerF.route(
+        //     Transform2DocElem(
+        //       new GzippedXCasModel with ExtractNNEs with ExtractSCAIViewAbstracts,
+        //       textContent.getBytes("UTF-8")
+        //     ), sender()
+        //   )
+        // }
         case ("gzip-xml", _) => {
-          log.info("(Gate) got gzipped XCAS and configure for NNE extraction and SCAIView abstract extraction")
+
+          log.info("(Gate) got gzipped XCAS and configure extraction of relations from sentences and paragraphs")
+
+          val model = new GzippedXCasModel with ExtractParagraphs with ExtractSentences with ExtractRelations {
+            override def applyRules = {
+              val topologyArtifactsPar = paragraphs
+                .zipWithIndex
+                .map(t => genTopologyArtifact(t._1, t._2))
+              val topologyArtifactsSent = paragraphs.map(sentences)
+                .flatten.zipWithIndex
+                .map(t => genTopologyArtifact(t._1._1, t._1._2, t._2))
+              val searchArtifactsRels = sentences
+                .map(relations).flatten
+                .map(t => genSearchArtifact(t._1, t._2)).flatten
+              val viewArtifactsRels = sentences.map(relations)
+                .flatten.zipWithIndex
+                .map(t => genViewArtifacts(t._1._1, t._1._2, t._2))
+              val contentArtifactsRels = sentences.map(relations)
+                .flatten.zipWithIndex
+                .map(t => genContentArtifacts(t._1._1, t._1._2, t._2))
+              val co = Corpus(
+                topologyArtifactsPar ++ topologyArtifactsSent ++
+                searchArtifactsRels ++ viewArtifactsRels ++
+                contentArtifactsRels
+              )
+              println(co)
+              co
+            }
+          }
+
           routerF.route(
-            Transform2DocElem(
-              new GzippedXCasModel with ExtractNNEs with ExtractSentences with ExtractSCAIViewAbstracts,
-              textContent.getBytes("UTF-8")
-            ), sender()
+            Transform2DocElem(model, textContent.getBytes), sender()
           )
+
         }
+        // case ("gzip-xml", _) => {
+        //   log.info("(Gate) got gzipped XCAS and configure for NNE extraction and SCAIView abstract extraction")
+        //   routerF.route(
+        //     Transform2DocElem(
+        //       new GzippedXCasModel with ExtractNNEs with ExtractSentences with ExtractSCAIViewAbstracts,
+        //       textContent.getBytes("UTF-8")
+        //     ), sender()
+        //   )
+        // }
         case ("xml", "query-single-docelem") => {
           log.info("(Gate) got html and configure for query single docelem")
           val builder = new XmlModel with XmlSingleDocElemQueryBuilder
