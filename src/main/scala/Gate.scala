@@ -138,25 +138,52 @@ class Gate extends Actor {
       var trackingNr = header.getOrElse("tracking-nr", "")
 
       (contentType, event) match {
-        // case ("gzip-xml", "ExtractNNEs") => {
-        //   log.info("(Gate) got gzipped XCAS and configure for NNE extraction")
-        //   routerF.route(
-        //     Transform2DocElem(
-        //       new GzippedXCasModel with ExtractNNEs,
-        //       textContent.getBytes("UTF-8")
-        //     ), sender()
-        //   )
-        // }
-        // case ("gzip-xml", "ExtractNNEs & ExtractSCAIViewAbstracts") => {
-        //   log.info("(Gate) got gzipped XCAS and configure for NNE extraction and SCAIView abstract extraction")
-        //   routerF.route(
-        //     Transform2DocElem(
-        //       new GzippedXCasModel with ExtractNNEs with ExtractSCAIViewAbstracts,
-        //       textContent.getBytes("UTF-8")
-        //     ), sender()
-        //   )
-        // }
-        case ("gzip-xml", _) => {
+
+        case ("gzip-xml", "ExtractHeader ExtractFrontMatter") => {
+
+          log.info("(Gate) got gzipped XCAS and configure extraction of front matter with sentences from header")
+
+          val model = new GzippedXCasModel with ExtractHeader with ExtractFrontMatter with ExtractSentences {
+            override def applyRules = {
+              val contentArtifactsHeader = getContentArtifacts(header)
+              val topologyArtifactsMatter = frontMatters
+                .map(genTopologyArtifact)
+              val topologyArtifactsTitle = frontMatters
+                .map(documentTitles).flatten
+                .map(t => genTopologyArtifact(t._1, t._2))
+              val topologyArtifactsAbstr = frontMatters
+                .map(documentAbstracts).flatten
+                .map(t => genTopologyArtifact(t._1, t._2))
+              val topologyArtifactsSentOnAbstract = frontMatters
+                .map(documentAbstracts).flatten.map(t => sentences(t._1))
+                .flatten.zipWithIndex
+                .map(t => genTopologyArtifact(t._1._1, t._1._2, t._2))
+              val topologyArtifactsSentOnTitle = frontMatters
+                .map(documentTitles).flatten.map(t => sentences(t._1))
+                .flatten.zipWithIndex
+                .map(t => genTopologyArtifact(t._1._1, t._1._2, t._2))
+              val contentArtifactsSent = sentences
+                .map(genContentArtifact)
+              val contentArtifactsTitle = documentTitles
+                .map(genContentArtifact)
+              val co = Corpus(
+                contentArtifactsHeader ++ topologyArtifactsMatter ++
+                topologyArtifactsTitle ++ topologyArtifactsAbstr ++
+                topologyArtifactsSentOnAbstract ++ topologyArtifactsSentOnTitle ++
+                contentArtifactsTitle ++ contentArtifactsSent
+              )
+              println(co)
+              co
+            }
+          }
+
+          routerF.route(
+            Transform2DocElem(model, textContent.getBytes), sender()
+          )
+
+        }
+
+        case ("gzip-xml", "ExtractRelations") => {
 
           log.info("(Gate) got gzipped XCAS and configure extraction of relations from sentences and paragraphs")
 
@@ -192,15 +219,6 @@ class Gate extends Actor {
           )
 
         }
-        // case ("gzip-xml", _) => {
-        //   log.info("(Gate) got gzipped XCAS and configure for NNE extraction and SCAIView abstract extraction")
-        //   routerF.route(
-        //     Transform2DocElem(
-        //       new GzippedXCasModel with ExtractNNEs with ExtractSentences with ExtractSCAIViewAbstracts,
-        //       textContent.getBytes("UTF-8")
-        //     ), sender()
-        //   )
-        // }
         case ("xml", "query-single-docelem") => {
           log.info("(Gate) got html and configure for query single docelem")
           val builder = new XmlModel with XmlSingleDocElemQueryBuilder

@@ -9,10 +9,14 @@ import de.fraunhofer.scai.bio.uima.core.deploy.AbstractDeployer
 import de.fraunhofer.scai.bio.uima.core.provenance.ProvenanceUtils
 import org.apache.uima.fit.util.JCasUtil
 import de.fraunhofer.scai.bio.msa.util.MessageUtils
+import de.fraunhofer.scai.bio.extraction.types.meta.Header
 import de.fraunhofer.scai.bio.extraction.types.text.NormalizedNamedEntity
 import de.fraunhofer.scai.bio.extraction.types.text.Sentence
 import de.fraunhofer.scai.bio.extraction.types.text.NLPRelation
 import de.fraunhofer.scai.bio.extraction.types.text.documentelement.structure.Paragraph
+import de.fraunhofer.scai.bio.extraction.types.text.documentelement.container.FrontMatter
+import de.fraunhofer.scai.bio.extraction.types.text.documentelement.meta.DocumentTitle
+import de.fraunhofer.scai.bio.extraction.types.text.documentelement.meta.Abstract
 import de.fraunhofer.scai.bio.extraction.types.meta.Person
 import org.apache.uima.cas.CAS
 
@@ -88,6 +92,24 @@ trait Helper {
 
   def uri(nne: NormalizedNamedEntity) = {
     s"concept/${dictId(nne)}:${prefName(nne)}"
+  }
+
+  def uri(fm: FrontMatter) = {
+    val hash = MurmurHash3.stringHash(fm.getCoveredText)
+    val hashHex = Integer.toHexString(hash)
+    s"front-matter/murmur3:${hashHex}"
+  }
+
+  def uri(dt: DocumentTitle) = {
+    val hash = MurmurHash3.stringHash(dt.getCoveredText)
+    val hashHex = Integer.toHexString(hash)
+    s"document-title/murmur3:${hashHex}"
+  }
+
+  def uri(abs: Abstract) = {
+    val hash = MurmurHash3.stringHash(abs.getCoveredText)
+    val hashHex = Integer.toHexString(hash)
+    s"abstract/murmur3:${hashHex}"
   }
 }
 
@@ -170,11 +192,35 @@ trait ExtractSentences extends CasModel with ModelTransRules {
 
   def sentences(superordinate: Paragraph) =  JCasUtil.subiterate(view, classOf[Sentence], superordinate, true, false).iterator.asScala.map(sent => (sent, superordinate)).toList
 
+  def sentences(superordinate: Abstract) =  JCasUtil.subiterate(view, classOf[Sentence], superordinate, true, false).iterator.asScala.map(sent => (sent, superordinate)).toList
+
+  def sentences(superordinate: DocumentTitle) =  JCasUtil.subiterate(view, classOf[Sentence], superordinate, true, false).iterator.asScala.map(sent => (sent, superordinate)).toList
+
   def genTopologyArtifact(sent: Sentence, par: Paragraph, nofSentence: Int) = {
     KnowledgeArtifact(
       new URI(uri(sent)),
       new URI(sigmaticUri),
       new URI(s"topo/${uri(par)}"),
+      s"${(1 + nofSentence) * 128}".getBytes,
+      Meta(new URI("topo-rank@v1"))
+    )
+  }
+
+  def genTopologyArtifact(sent: Sentence, abs: Abstract, nofSentence: Int) = {
+    KnowledgeArtifact(
+      new URI(uri(sent)),
+      new URI(sigmaticUri),
+      new URI(s"topo/${uri(abs)}"),
+      s"${(1 + nofSentence) * 128}".getBytes,
+      Meta(new URI("topo-rank@v1"))
+    )
+  }
+
+  def genTopologyArtifact(sent: Sentence, dt: DocumentTitle, nofSentence: Int) = {
+    KnowledgeArtifact(
+      new URI(uri(sent)),
+      new URI(sigmaticUri),
+      new URI(s"topo/${uri(dt)}"),
       s"${(1 + nofSentence) * 128}".getBytes,
       Meta(new URI("topo-rank@v1"))
     )
@@ -218,45 +264,100 @@ trait ExtractNNEs extends CasModel with ModelTransRules {
 
 }
 
-trait ExtractSCAIViewAbstracts extends CasModel with ModelTransRules  {
+trait ExtractFrontMatter extends CasModel with ModelTransRules {
 
-  override def applyRules = {
-    val jcas = cas.getJCas()
-    val view = UIMAViewUtils.getOrCreatePreferredView(jcas, AbstractDeployer.VIEW_DOCUMENT)
-    val header = UIMAViewUtils.getHeaderFromView(jcas)
+  def frontMatters = JCasUtil.iterator(view, classOf[FrontMatter]).asScala.toList
 
-    //val annotationLayer = ProvenanceUtils.getDocumentCollectionName(jcas)
-    val layerUri = "_"
+  def documentTitles = JCasUtil.iterator(view, classOf[DocumentTitle]).asScala.toList
 
-    var artifacts = Seq[KnowledgeArtifact]()
+  def documentTitles(superordinate: FrontMatter) =  JCasUtil.subiterate(view, classOf[DocumentTitle], superordinate, true, false).iterator.asScala.map(dTitle => (dTitle, superordinate)).toList
 
-    artifacts = KnowledgeArtifact(
+  def documentAbstracts(superordinate: FrontMatter) =  JCasUtil.subiterate(view, classOf[Abstract], superordinate, true, false).iterator.asScala.map(dAbstract => (dAbstract, superordinate)).toList
+
+  def genTopologyArtifact(frontMatter: FrontMatter) = {
+    KnowledgeArtifact(
+      new URI(uri(frontMatter)),
       new URI(sigmaticUri),
-      new URI(layerUri),
-      new URI("header/header"),
-      view.getDocumentText.getBytes,
-      Meta(new URI("scaiview.abstract"))
-    ) +: artifacts
+      new URI(s"topo/${sigmaticUri}"),
+      "128".getBytes,
+      Meta(new URI("topo-rank@v1"))
+    )
+  }
 
-    val authors = header.getAuthors.toArray.map(_.asInstanceOf[Person]).map(p => s"${p.getForename} ${p.getSurname}").mkString(", ")
-
-    artifacts = KnowledgeArtifact(
+  def genTopologyArtifact(dTitle: DocumentTitle, frontMatter: FrontMatter) = {
+    KnowledgeArtifact(
+      new URI(uri(dTitle)),
       new URI(sigmaticUri),
-      new URI(layerUri),
-      new URI("header/authors"),
-      authors.getBytes,
-      Meta(new URI("freetext"))
-    ) +: artifacts
+      new URI(s"topo/${uri(frontMatter)}"),
+      "128".getBytes,
+      Meta(new URI("topo-rank@v1"))
+    )
+  }
 
-    artifacts = KnowledgeArtifact(
+  def genTopologyArtifact(dAbstract: Abstract, frontMatter: FrontMatter) = {
+    KnowledgeArtifact(
+      new URI(uri(dAbstract)),
       new URI(sigmaticUri),
-      new URI(layerUri),
-      new URI("header/publicationDate"),
-      String.format("%tFT%<tRZ", header.getPublicationDate.getDate).getBytes,
-      Meta(new URI("freetext"))
-    ) +: artifacts
+      new URI(s"topo/${uri(frontMatter)}"),
+      "256".getBytes,
+      Meta(new URI("topo-rank@v1"))
+    )
+  }
 
-    Corpus(artifacts ++ super.applyRules.artifacts)
+  def genContentArtifact(dTitle: DocumentTitle) = {
+    val text = dTitle.getCoveredText.getBytes
+    KnowledgeArtifact(
+      new URI(uri(dTitle)),
+      new URI("_"),
+      new URI("document-title/document-title"),
+      text,
+      Meta(new URI("freetext"), MurmurHash3.bytesHash(text))
+    )
+  }
+
+}
+
+trait ExtractHeader extends CasModel with ModelTransRules {
+
+  def getContentArtifacts(header: Header) = {
+
+    val authors = header.getAuthors.toArray
+      .map(_.asInstanceOf[Person])
+      .map(p => s"${p.getForename} ${p.getSurname}")
+      .mkString(", ")
+
+    val pubDate = String.format("%tFT%<tRZ", header.getPublicationDate.getDate)
+
+    Seq(
+      KnowledgeArtifact(
+        new URI(sigmaticUri),
+        new URI("_"),
+        new URI("header/header"), // TODO: here should go the complete unstructured domain model...
+        header.getTitle.getBytes,
+        Meta(new URI("freetext"))
+      ),
+      KnowledgeArtifact(
+        new URI(sigmaticUri),
+        new URI("_"),
+        new URI("header/title"),
+        header.getTitle.getBytes,
+        Meta(new URI("freetext"))
+      ),
+      KnowledgeArtifact(
+        new URI(sigmaticUri),
+        new URI("_"),
+        new URI("header/authors"),
+        authors.getBytes,
+        Meta(new URI("freetext"))
+      ),
+      KnowledgeArtifact(
+        new URI(sigmaticUri),
+        new URI("_"),
+        new URI("header/publicationDate"),
+        pubDate.getBytes,
+        Meta(new URI("freetext"))
+      )
+    )
   }
 
 }
