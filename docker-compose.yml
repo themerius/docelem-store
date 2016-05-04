@@ -1,0 +1,17 @@
+version: '2'
+services:
+  docelemstore:
+    build: .
+    volumes:
+     - .:/code
+    hostname: "docelem-store"
+    restart: "unless-stopped"
+    add-host:
+     - flux:193.175.167.99
+    depends_on:
+     - broker
+  broker:
+    image: themerius/apache-apollo:latest
+    ports:
+      - 61613:61613
+      - 61680:61680

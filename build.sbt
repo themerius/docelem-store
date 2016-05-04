@@ -65,6 +65,9 @@ javaOptions in run += s"-Dconfig.file=${System.getProperty("config.file")}"
 javaOptions in run += "-Dhawtdispatch.threads=4"
 javaOptions in test += "-XX:+CMSClassUnloadingEnabled"
 
+// Set JAR name for
+assemblyJarName in assembly := s"${name.value}.jar"
+
 // Avoid assembly errors
 assemblyMergeStrategy in assembly := {
   case PathList("META-INF", xs @ _*) => MergeStrategy.discard

@@ -28,3 +28,6 @@ old/
 
 .ensime
 .ensime_cache
+
+# Do not ignore the assembled artifact
+!target/scala-2.11/docelem-store.jar
