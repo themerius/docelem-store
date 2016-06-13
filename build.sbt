@@ -27,7 +27,8 @@ libraryDependencies ++= Seq(
   "org.scala-lang.modules" %% "scala-xml" % "1.0.3",
   "org.apache.accumulo" % "accumulo-core" % "1.7.1",
   "org.apache.accumulo" % "accumulo-minicluster" % "1.7.1",
-  "org.scalatest" %% "scalatest" % "2.2.4" % "test"
+  "org.scalatest" %% "scalatest" % "2.2.4" % "test",
+  "javax.jms" % "jms" % "1.1"
 )
 
 // Communication with broker
