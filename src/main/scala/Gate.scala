@@ -145,7 +145,7 @@ class Gate extends Actor {
 
           val model = new GzippedXCasModel with ExtractHeader with ExtractFrontMatter with ExtractSentences {
             override def applyRules = {
-              val contentArtifactsHeader = getContentArtifacts(header)
+              val contentArtifactsHeader = genContentArtifacts(header)
               val topologyArtifactsMatter = frontMatters
                 .map(genTopologyArtifact)
               val topologyArtifactsTitle = frontMatters

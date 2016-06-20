@@ -14,7 +14,13 @@ import de.fraunhofer.scai.bio.extraction.types.text.NormalizedNamedEntity
 import de.fraunhofer.scai.bio.extraction.types.text.Sentence
 import de.fraunhofer.scai.bio.extraction.types.text.NLPRelation
 import de.fraunhofer.scai.bio.extraction.types.text.documentelement.structure.Paragraph
+import de.fraunhofer.scai.bio.extraction.types.text.documentelement.DocumentElement
+import de.fraunhofer.scai.bio.extraction.types.text.documentelement.structure.List
+import de.fraunhofer.scai.bio.extraction.types.text.documentelement.container.Matter
 import de.fraunhofer.scai.bio.extraction.types.text.documentelement.container.FrontMatter
+import de.fraunhofer.scai.bio.extraction.types.text.documentelement.container.Section
+import de.fraunhofer.scai.bio.extraction.types.text.documentelement.container.SubSection
+import de.fraunhofer.scai.bio.extraction.types.text.documentelement.container.Outline
 import de.fraunhofer.scai.bio.extraction.types.text.documentelement.meta.DocumentTitle
 import de.fraunhofer.scai.bio.extraction.types.text.documentelement.meta.Abstract
 import de.fraunhofer.scai.bio.extraction.types.meta.Person
@@ -44,7 +50,7 @@ trait CasModel extends Model with Helper {
     var idType = "pmid"
 
     if (header.getDocumentConcept != null) {
-      idType = header.getDocumentConcept.getIdentifier
+      idType = header.getDocumentConcept.getIdentifierSource
     }
 
     pmidId match {
@@ -52,6 +58,18 @@ trait CasModel extends Model with Helper {
       case _ => s"header/${idType}:${userId}"
     }
   }
+
+}
+
+class XCasModel extends CasModel {
+
+  def deserialize(m: Array[Byte]) = {
+    val stream = new ByteArrayInputStream(m)
+    cas = UIMATypeSystemUtils.getFilledCasFromSource("/SCAITypeSystem.xml", "/SCAIIndexCollectionDescriptor.xml", stream)
+    this
+  }
+
+  def serialize: Array[Byte] = throw new Exception("not implemented yet")
 
 }
 
@@ -69,16 +87,61 @@ class GzippedXCasModel extends CasModel {
 }
 
 trait Helper {
+
+  def camelToUnderscores(name: String) = "[A-Z\\d]".r.replaceAllIn(name, {m =>
+    if(m.end(0) == 1){
+      m.group(0).toLowerCase()
+    }else {
+      "-" + m.group(0).toLowerCase()
+    }
+  })
+
+  def uri(docelem: DocumentElement) = {
+    val typeId = camelToUnderscores(docelem.getClass.getSimpleName)
+
+    if (docelem.isInstanceOf[Outline]) {
+      val outline = docelem.asInstanceOf[Outline]
+      val title = outline.getTitle.toLowerCase.replaceAll("\\p{P}", "").replaceAll("\\p{Z}", "_")
+      val rhetorical = outline.getRhetorical.toLowerCase.replaceAll("\\p{P}", "").replaceAll("\\p{Z}", "_")
+      s"$typeId/name:${title}+${rhetorical}"
+    } else {
+      val hash = MurmurHash3.stringHash(docelem.getCoveredText)
+      val hashHex = Integer.toHexString(hash)
+      s"$typeId/murmur3:${hashHex}"
+    }
+
+  }
+
   def uri(par: Paragraph) = {
     val hash = MurmurHash3.stringHash(par.getCoveredText)
     val hashHex = Integer.toHexString(hash)
     s"paragraph/murmur3:${hashHex}"
   }
 
+  def uri(list: List) = {
+    val hash = MurmurHash3.stringHash(list.getCoveredText)
+    val hashHex = Integer.toHexString(hash)
+    s"list/murmur3:${hashHex}"
+  }
+
   def uri(sen: Sentence) = {
     val hash = MurmurHash3.stringHash(sen.getCoveredText)
     val hashHex = Integer.toHexString(hash)
     s"sentence/murmur3:${hashHex}"
+  }
+
+  def uri(sec: Section) = {
+    // Note: For details see the Unicode Categories of Java
+    val title = sec.getTitle.toLowerCase.replaceAll("\\p{P}", "").replaceAll("\\p{Z}", "_")
+    val rhetorical = sec.getRhetorical.toLowerCase.replaceAll("\\p{P}", "").replaceAll("\\p{Z}", "_")
+    s"section/${title}+${rhetorical}"
+  }
+
+  def uri(sec: SubSection) = {
+    // Note: For details see the Unicode Categories of Java
+    val title = sec.getTitle.toLowerCase.replaceAll("\\p{P}", "").replaceAll("\\p{Z}", "_")
+    val rhetorical = sec.getRhetorical.toLowerCase.replaceAll("\\p{P}", "").replaceAll("\\p{Z}", "_")
+    s"sub-section/${title}+${rhetorical}"
   }
 
   def dictId(nne: NormalizedNamedEntity) =
@@ -181,6 +244,121 @@ trait ExtractParagraphs extends CasModel with ModelTransRules {
       new URI(s"topo/${sigmaticUri}"),
       s"${(1 + nofParagraph) * 128}".getBytes,
       Meta(new URI("topo-rank@v1"))
+    )
+  }
+
+}
+
+trait ExtractGenericDocElemHierarchy extends CasModel with ModelTransRules {
+
+  def docelems = JCasUtil.iterator(view, classOf[DocumentElement]).asScala.toList
+
+  def headerDocElem = {
+    val de = new Matter(jcas)  // as alternative to header, because header is in our typesystem no document element!
+    de.setBegin(0)
+    de
+  }
+
+  // Prepare Head of topology
+  def topoHead = {
+    val head = new TypesystemTopologyItem(headerDocElem)
+    head.superordinate = head
+    head
+  }
+  // Prepare the list of document elements
+  def items = topoHead +: docelems.map(new TypesystemTopologyItem(_))
+  def hierarcyUtils = new HierarchyUtils(items)
+  // Compute the hierarchy
+  def hierarchizedDocelems = hierarcyUtils.assignHierarchy
+
+  // TODO: remove HACK. We need for example a header document element!
+  def uri_matter2header_HACK(docelem: DocumentElement) = {
+    if(docelem.getClass.getSimpleName == "Matter") {
+      sigmaticUri
+    } else {
+      uri(docelem)
+    }
+  }
+
+  def genTopologyArtifact(docelem: TopologyItem[DocumentElement]) = {
+    KnowledgeArtifact(
+      new URI(uri_matter2header_HACK(docelem.instance)),
+      new URI(sigmaticUri),
+      new URI(s"topo/${uri_matter2header_HACK(docelem.follows.instance)}"),
+      s"${docelem.rank}".getBytes,
+      Meta(new URI("topo-rank@v1"))
+    )
+  }
+
+}
+
+trait ExtractLists extends CasModel with ModelTransRules {
+
+  def lists = JCasUtil.iterator(view, classOf[List]).asScala.toList
+
+  def genTopologyArtifact(list: List, nofLists: Int) = {
+    KnowledgeArtifact(
+      new URI(uri(list)),
+      new URI(sigmaticUri),
+      new URI(s"topo/${sigmaticUri}"),
+      s"${(1 + nofLists) * 128}".getBytes,
+      Meta(new URI("topo-rank@v1"))
+    )
+  }
+
+  def genContentArtifact(list: List) = {
+    KnowledgeArtifact(
+      new URI(uri(list)),
+      new URI("_"),
+      new URI(s"list/list"),
+      list.getCoveredText.getBytes,
+      Meta(new URI("net.daringfireball.markdown@v1.0.1"))
+    )
+  }
+
+}
+
+trait ExtractSections extends CasModel with ModelTransRules {
+
+  def sections = JCasUtil.iterator(view, classOf[Section]).asScala.toList
+
+  def subSections = JCasUtil.iterator(view, classOf[SubSection]).asScala.toList
+
+  def genContentArtifacts(sec: Section) = {
+    Seq(
+      KnowledgeArtifact(
+        new URI(uri(sec)),
+        new URI("_"),
+        new URI(s"section/title"),
+        sec.getTitle.getBytes,
+        Meta(new URI("freetext"))
+      ),
+      KnowledgeArtifact(
+        new URI(uri(sec)),
+        new URI("_"),
+        new URI(s"section/rhetorical"),
+        sec.getRhetorical.getBytes,
+        Meta(new URI("freetext"))
+      )
+    )
+  }
+
+  def genContentArtifacts(sec: SubSection) = {
+    Seq(
+      KnowledgeArtifact(
+        new URI(uri(sec)),
+        new URI("_"),
+        new URI(s"section/title"),
+        sec.getTitle.getBytes,
+        Meta(new URI("freetext"))
+      ),
+      KnowledgeArtifact(
+        new URI(uri(sec)),
+        new URI("_"),
+        new URI(s"section/rhetorical"),
+        sec.getRhetorical.getBytes,
+        Meta(new URI("freetext"))
+      )
     )
   }
 
@@ -319,7 +497,7 @@ trait ExtractFrontMatter extends CasModel with ModelTransRules {
 
 trait ExtractHeader extends CasModel with ModelTransRules {
 
-  def getContentArtifacts(header: Header) = {
+  def genContentArtifacts(header: Header) = {
 
     val authors = header.getAuthors.toArray
       .map(_.asInstanceOf[Person])

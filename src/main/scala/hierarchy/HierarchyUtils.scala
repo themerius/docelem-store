@@ -11,6 +11,7 @@ trait TopologyItem[DocElem] extends scala.math.Ordered[TopologyItem[DocElem]] {
 
   def hierarchyMapping = Map(
     "Header" -> 0,
+    "Matter" -> 0, // as alternative to header. it's more a hack for SCAI typesystem!!
     "FrontMatter" -> 1,
     "BodyMatter" -> 1,
     "BackMatter" -> 1,

@@ -9,16 +9,18 @@ class TypesystemTopologyItem(val instance: DocumentElement) extends TopologyItem
 
   var superordinate: TopologyItem[DocumentElement] = null
   var follows: TopologyItem[DocumentElement] = null
-  var rank = -1
+  var rank = instance.getBegin
 
   def getHierarchyPosition(item: TopologyItem[DocumentElement]) = {
-    if (item.isInstanceOf[StructureElement]) {
-      hierarchyMapping.getOrElse("StructureElement", 0)
-    } else if (item.isInstanceOf[MetaElement]) {
-      hierarchyMapping.getOrElse("MetaElement", 0)
+    if (item.instance.isInstanceOf[StructureElement]) {
+      hierarchyMapping.getOrElse("StructureElement", 100)
+    } else if (item.instance.isInstanceOf[MetaElement]) {
+      hierarchyMapping.getOrElse("MetaElement", 100)
     } else {
-      hierarchyMapping.getOrElse(item.getClass.getName, 0)
+      hierarchyMapping.getOrElse(item.instance.getClass.getSimpleName, 0)
     }
   }
+
+  override def toString = s"${instance.getClass.getSimpleName}/$rank"
 
 }
