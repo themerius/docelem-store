@@ -21,7 +21,8 @@ trait TopologyItem[DocElem] extends scala.math.Ordered[TopologyItem[DocElem]] {
     "SubSection" -> 5,
     "SubSubSection" -> 6,
     "MetaElement" -> 7,
-    "StructureElement" -> 7
+    "StructureElement" -> 7,
+    "Sentence" -> 8
   )
 
   // Use here the hierarchy mappings!

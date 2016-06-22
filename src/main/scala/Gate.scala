@@ -172,8 +172,33 @@ class Gate extends Actor {
                 topologyArtifactsSentOnAbstract ++ topologyArtifactsSentOnTitle ++
                 contentArtifactsTitle ++ contentArtifactsSent
               )
-              println(co)
               co
+            }
+          }
+
+          routerF.route(
+            Transform2DocElem(model, textContent.getBytes), sender()
+          )
+
+        }
+
+        case ("xmi", "ExtractCtgovUseCase") => {
+
+          log.info("(Gate) XMI and configure extraction of the CTGOV use case")
+
+          // TODO: extract also sentences and paragraphs?
+          // TODO: refactor sentence/paragraphs so that they use the generic hierarchy trait
+          // TODO: refactor sections trait, such that it is more generic (e.g. using Outline type)
+
+          val model = new XCasModel with ExtractHeader with ExtractSections with ExtractLists with ExtractGenericHierarchy with ExtractSentences {
+            override def applyRules = {
+              val headerArtifacts = genContentArtifacts(header)
+              val sectionsArtifacts = sections.map(genContentArtifacts).flatten
+              val subSectionsArtifacts = subSections.map(genContentArtifacts).flatten
+              val listAritfacts = lists.map(genContentArtifact)
+              val sentenceArtifacts = sentences.map(genContentArtifact)
+              val topologyArtifacts = hierarchizedDocelems.map(genTopologyArtifact)
+              Corpus(headerArtifacts ++ sectionsArtifacts ++ subSectionsArtifacts ++ listAritfacts ++ sentenceArtifacts ++ topologyArtifacts)
             }
           }
 
@@ -246,6 +271,7 @@ class Gate extends Actor {
         }
       }
 
+      // TODO: integrate that into the other match/case
       event match {
         case "FoundCorpus" => {
           router.route(FoundCorpus(textContent), sender())

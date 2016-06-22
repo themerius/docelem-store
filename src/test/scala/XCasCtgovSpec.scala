@@ -10,7 +10,7 @@ import java.net.URI
 class XCasCtgovSpec extends FlatSpec with Matchers {
 
   def getSampleXCas: Array[Byte] = {
-    val uri = getClass.getResource("/sample-ctgov2.xml").toURI
+    val uri = getClass.getResource("/sample-ctgov-NCT01463384-annot.xml").toURI
     Files.readAllBytes(Paths.get(uri))
   }
 
@@ -35,7 +35,7 @@ class XCasCtgovSpec extends FlatSpec with Matchers {
 
     corpus.artifacts.size should be (4)
     corpus.artifacts(0).sigmatics should equal (
-      new URI ("header/clinicaltrials.gov:NCT00000171")
+      new URI ("header/clinicaltrials.gov:NCT01463384")
     )
 
   }
@@ -54,10 +54,10 @@ class XCasCtgovSpec extends FlatSpec with Matchers {
     val corpus = casModel.applyRules
 
     // 2 artifacts per (sub)section
-    corpus.artifacts.size should be (2*8)
+    corpus.artifacts.size should be (2*9)
 
     corpus.artifacts(0).sigmatics should equal (
-      new URI ("section/overview+overview")
+      new URI ("section/name:overview+overview")
     )
 
     corpus.artifacts(0).semantics should equal (
@@ -68,15 +68,15 @@ class XCasCtgovSpec extends FlatSpec with Matchers {
       "Overview"
     )
 
-    corpus.artifacts(12).sigmatics should equal (
-      new URI ("sub-section/inclusion_criteria+inclusion_criteria")
+    corpus.artifacts(14).sigmatics should equal (
+      new URI ("sub-section/name:inclusion_criteria+inclusion_criteria")
     )
 
-    corpus.artifacts(12).semantics should equal (
+    corpus.artifacts(14).semantics should equal (
       new URI ("section/title")
     )
 
-    new String(corpus.artifacts(12).model) should include (
+    new String(corpus.artifacts(14).model) should include (
       "Inclusion Criteria."
     )
 
@@ -97,21 +97,21 @@ class XCasCtgovSpec extends FlatSpec with Matchers {
     corpus.artifacts.size should be (1)
 
     corpus.artifacts(0).sigmatics should equal (
-      new URI ("list/murmur3:157dac74")
+      new URI ("list/murmur3:7c7fd3fe")
     )
 
     new String(corpus.artifacts(0).model) should include (
-      "2.1 Intervention Type:	Drug"
+      "<li>9. Reference:</li>"
     )
 
   }
 
   it should "extract generic docelems in hiearchy" in {
 
-    val casModel = new XCasModel with ExtractGenericDocElemHierarchy {
+    val casModel = new XCasModel with ExtractGenericHierarchy {
       override def applyRules = {
-        val artifacts = hierarchizedDocelems.map(genTopologyArtifact)
-        Corpus(artifacts)
+        val topologyArtifacts = hierarchizedDocelems.map(genTopologyArtifact)
+        Corpus(topologyArtifacts)
       }
     }
 
@@ -119,12 +119,37 @@ class XCasCtgovSpec extends FlatSpec with Matchers {
     val corpus = casModel.applyRules
 
     // header follows itself
-    corpus.artifacts(0).semantics should equal (new URI("topo/header/clinicaltrials.gov:NCT00000171"))
+    corpus.artifacts(0).semantics should equal (new URI("topo/header/clinicaltrials.gov:NCT01463384"))
     // section follows the header
-    corpus.artifacts(7).semantics should equal (new URI("topo/header/clinicaltrials.gov:NCT00000171"))
+    corpus.artifacts(6).semantics should equal (new URI("topo/header/clinicaltrials.gov:NCT01463384"))
     // this sub-section follows the first section
-    corpus.artifacts(8).semantics should equal (new URI("topo/section/name:criteria+criteria"))
+    corpus.artifacts(22).semantics should equal (new URI("topo/section/name:criteria+criteria"))
     // .. and so on ..
+
+  }
+
+  it should "extract also sentences as part of the hiearchy" in {
+
+    val casModel = new XCasModel with ExtractGenericHierarchy with ExtractSentences {
+      override def applyRules = {
+        val topologyArtifacts = hierarchizedDocelems.map(genTopologyArtifact)
+        val sentenceArtifacts = sentences.map(genContentArtifact)
+        Corpus(topologyArtifacts ++ sentenceArtifacts)
+      }
+    }
+
+    casModel.deserialize(getSampleXCas)
+    val corpus = casModel.applyRules
+
+    //corpus.artifacts.toList.map(println)
+
+    // a sentence follows a paragraph
+    corpus.artifacts(51).sigmatics.toString should equal ("sentence/murmur3:9305787a")
+    corpus.artifacts(51).semantics.toString should equal ("topo/paragraph/murmur3:6067ffd8")
+
+    // a sentence with content
+    corpus.artifacts(100).sigmatics.toString should equal ("sentence/murmur3:2dfc030e")
+    new String(corpus.artifacts(100).model) should equal ("- Cognitively normal elderly subjects between the ages of 55-90 and patients aged 55 - 90 years who have mild cognitive impairment (MCI) or clinically defined Alzheimer's disease.")
 
   }
 

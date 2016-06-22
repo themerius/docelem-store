@@ -3,6 +3,7 @@ package eu.themerius.docelemstore
 import java.io.ByteArrayInputStream
 import java.net.URI
 
+import org.apache.uima.jcas.cas.FSArray
 import de.fraunhofer.scai.bio.uima.core.util.UIMATypeSystemUtils
 import de.fraunhofer.scai.bio.uima.core.util.UIMAViewUtils
 import de.fraunhofer.scai.bio.uima.core.deploy.AbstractDeployer
@@ -13,6 +14,7 @@ import de.fraunhofer.scai.bio.extraction.types.meta.Header
 import de.fraunhofer.scai.bio.extraction.types.text.NormalizedNamedEntity
 import de.fraunhofer.scai.bio.extraction.types.text.Sentence
 import de.fraunhofer.scai.bio.extraction.types.text.NLPRelation
+import de.fraunhofer.scai.bio.extraction.types.text.CoreAnnotation
 import de.fraunhofer.scai.bio.extraction.types.text.documentelement.structure.Paragraph
 import de.fraunhofer.scai.bio.extraction.types.text.documentelement.DocumentElement
 import de.fraunhofer.scai.bio.extraction.types.text.documentelement.structure.List
@@ -96,13 +98,14 @@ trait Helper {
     }
   })
 
-  def uri(docelem: DocumentElement) = {
+  def uri(docelem: CoreAnnotation) = {
     val typeId = camelToUnderscores(docelem.getClass.getSimpleName)
 
     if (docelem.isInstanceOf[Outline]) {
       val outline = docelem.asInstanceOf[Outline]
       val title = outline.getTitle.toLowerCase.replaceAll("\\p{P}", "").replaceAll("\\p{Z}", "_")
-      val rhetorical = outline.getRhetorical.toLowerCase.replaceAll("\\p{P}", "").replaceAll("\\p{Z}", "_")
+      val rhetorical = if (outline.getRhetorical != null)
+        outline.getRhetorical.toLowerCase.replaceAll("\\p{P}", "").replaceAll("\\p{Z}", "_") else ""
       s"$typeId/name:${title}+${rhetorical}"
     } else {
       val hash = MurmurHash3.stringHash(docelem.getCoveredText)
@@ -128,20 +131,6 @@ trait Helper {
     val hash = MurmurHash3.stringHash(sen.getCoveredText)
     val hashHex = Integer.toHexString(hash)
     s"sentence/murmur3:${hashHex}"
-  }
-
-  def uri(sec: Section) = {
-    // Note: For details see the Unicode Categories of Java
-    val title = sec.getTitle.toLowerCase.replaceAll("\\p{P}", "").replaceAll("\\p{Z}", "_")
-    val rhetorical = sec.getRhetorical.toLowerCase.replaceAll("\\p{P}", "").replaceAll("\\p{Z}", "_")
-    s"section/${title}+${rhetorical}"
-  }
-
-  def uri(sec: SubSection) = {
-    // Note: For details see the Unicode Categories of Java
-    val title = sec.getTitle.toLowerCase.replaceAll("\\p{P}", "").replaceAll("\\p{Z}", "_")
-    val rhetorical = sec.getRhetorical.toLowerCase.replaceAll("\\p{P}", "").replaceAll("\\p{Z}", "_")
-    s"sub-section/${title}+${rhetorical}"
   }
 
   def dictId(nne: NormalizedNamedEntity) =
@@ -249,7 +238,7 @@ trait ExtractParagraphs extends CasModel with ModelTransRules {
 
 }
 
-trait ExtractGenericDocElemHierarchy extends CasModel with ModelTransRules {
+trait ExtractGenericHierarchy extends CasModel with ModelTransRules with ExtractSentences {
 
   def docelems = JCasUtil.iterator(view, classOf[DocumentElement]).asScala.toList
 
@@ -266,13 +255,13 @@ trait ExtractGenericDocElemHierarchy extends CasModel with ModelTransRules {
     head
   }
   // Prepare the list of document elements
-  def items = topoHead +: docelems.map(new TypesystemTopologyItem(_))
+  def items = topoHead +: (docelems.map(new TypesystemTopologyItem(_)) ++ sentences.map(new TypesystemTopologyItem(_)))
   def hierarcyUtils = new HierarchyUtils(items)
   // Compute the hierarchy
   def hierarchizedDocelems = hierarcyUtils.assignHierarchy
 
   // TODO: remove HACK. We need for example a header document element!
-  def uri_matter2header_HACK(docelem: DocumentElement) = {
+  def uri_matter2header_HACK(docelem: CoreAnnotation) = {
     if(docelem.getClass.getSimpleName == "Matter") {
       sigmaticUri
     } else {
@@ -280,7 +269,7 @@ trait ExtractGenericDocElemHierarchy extends CasModel with ModelTransRules {
     }
   }
 
-  def genTopologyArtifact(docelem: TopologyItem[DocumentElement]) = {
+  def genTopologyArtifact(docelem: TopologyItem[CoreAnnotation]) = {
     KnowledgeArtifact(
       new URI(uri_matter2header_HACK(docelem.instance)),
       new URI(sigmaticUri),
@@ -307,12 +296,27 @@ trait ExtractLists extends CasModel with ModelTransRules {
   }
 
   def genContentArtifact(list: List) = {
+    // HACK: because uima's StringList sucks!!!
+    var i = 0
+    var buffer = Seq[String]()
+    while (i >= 0) {
+      try {
+        val item = list.getItems.getNthElement(i)
+        buffer = item +: buffer
+        i = i + 1
+      } catch {
+        case e: org.apache.uima.cas.CASRuntimeException => i = -1
+      }
+    }
+
+    val htmlSnippet = buffer.reverse.mkString("<li>", "</li><li>", "</li>")
+
     KnowledgeArtifact(
       new URI(uri(list)),
       new URI("_"),
-      new URI(s"list/list"),
-      list.getCoveredText.getBytes,
-      Meta(new URI("net.daringfireball.markdown@v1.0.1"))
+      new URI(s"list/html"),
+      htmlSnippet.getBytes,
+      Meta(new URI("html-snippet"))
     )
   }
 
@@ -344,14 +348,7 @@ trait ExtractSections extends CasModel with ModelTransRules {
   }
 
   def genContentArtifacts(sec: SubSection) = {
-    Seq(
-      KnowledgeArtifact(
-        new URI(uri(sec)),
-        new URI("_"),
-        new URI(s"section/title"),
-        sec.getTitle.getBytes,
-        Meta(new URI("freetext"))
-      ),
+    val rethorical = if (sec.getRhetorical != null) {
       KnowledgeArtifact(
         new URI(uri(sec)),
         new URI("_"),
@@ -359,6 +356,24 @@ trait ExtractSections extends CasModel with ModelTransRules {
         sec.getRhetorical.getBytes,
         Meta(new URI("freetext"))
       )
+    } else {
+      KnowledgeArtifact(
+        new URI(uri(sec)),
+        new URI("_"),
+        new URI(s"section/rhetorical"),
+        "".getBytes,
+        Meta(new URI("freetext"))
+      )
+    }
+
+    Seq(
+      KnowledgeArtifact(
+        new URI(uri(sec)),
+        new URI("_"),
+        new URI(s"section/title"),
+        sec.getTitle.getBytes,
+        Meta(new URI("freetext"))
+      ), rethorical
     )
   }
 
