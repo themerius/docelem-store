@@ -44,10 +44,10 @@ class XCasModelSpec extends FlatSpec with Matchers {
       new URI ("paragraph/murmur3:972fdd49")
     )
     corpus.artifacts(0).pragmatics should equal (
-      new URI ("header/pmid:11358825")
+      new URI ("header/PubMed:11358825")
     )
     corpus.artifacts(0).semantics should equal (
-      new URI ("topo/header/pmid:11358825")
+      new URI ("topo/header/PubMed:11358825")
     )
     new String(corpus.artifacts(0).model) should include (
       "128"
@@ -100,7 +100,7 @@ class XCasModelSpec extends FlatSpec with Matchers {
       new URI ("sentence/murmur3:9ff418a")
     )
     corpus.artifacts(0).pragmatics should equal (
-      new URI ("header/pmid:11358825")
+      new URI ("header/PubMed:11358825")
     )
     corpus.artifacts(0).semantics should equal (
       new URI ("topo/paragraph/murmur3:972fdd49")

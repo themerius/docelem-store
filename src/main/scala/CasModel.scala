@@ -49,7 +49,7 @@ trait CasModel extends Model with Helper {
   def sigmaticUri = {
     val userId = ProvenanceUtils.getUserSuppliedID(jcas)
     val pmidId = userId.split("PMID")
-    var idType = "pmid"
+    var idType = "PubMed"
 
     if (header.getDocumentConcept != null) {
       idType = header.getDocumentConcept.getIdentifierSource

@@ -1,6 +1,6 @@
 package eu.themerius.docelemstore
 
-import org.scalatest.{ BeforeAndAfterAll, FlatSpecLike, Matchers }
+import org.scalatest.{ BeforeAndAfterAll, FlatSpecLike, Matchers, Ignore }
 import akka.actor.{ Props, ActorSystem }
 import akka.testkit.{ ImplicitSender, TestKit, TestActorRef }
 import scala.concurrent.duration._
@@ -10,6 +10,7 @@ import com.typesafe.config.ConfigFactory
 
 import java.nio.file.{ Files, Paths }
 
+@Ignore
 class GateActorSpec(_system: ActorSystem)
   extends TestKit(_system)
   with ImplicitSender

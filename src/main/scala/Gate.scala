@@ -244,6 +244,26 @@ class Gate extends Actor {
           )
 
         }
+
+        case ("gzip-xml", "") => {
+
+          log.info("(Gate) got gzipped XCAS, configure for document extraction only")
+
+          val model = new GzippedXCasModel with ExtractHeader with ExtractGenericHierarchy with ExtractSentences {
+            override def applyRules = {
+              val headerArtifacts = genContentArtifacts(header)
+              val sentenceArtifacts = sentences.map(genContentArtifact)
+              val topologyArtifacts = hierarchizedDocelems.map(genTopologyArtifact)
+              Corpus(headerArtifacts ++ sentenceArtifacts ++ topologyArtifacts)
+            }
+          }
+
+          routerF.route(
+            Transform2DocElem(model, textContent.getBytes), sender()
+          )
+
+        }
+
         case ("xml", "query-single-docelem") => {
           log.info("(Gate) got html and configure for query single docelem")
           val builder = new XmlModel with XmlSingleDocElemQueryBuilder
