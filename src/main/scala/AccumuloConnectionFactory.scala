@@ -43,7 +43,7 @@ object AccumuloConnectionFactory {
   //   :: layer_uri
   //   :: attribute_uri \0 model_spec_uri \0 fingerprint
   //   :: domain_model
-  val ARTIFACTS = "knowledge_artifacts_dev"
+  val ARTIFACTS = "knowledge_artifacts_dev_sh"
   if (!ops.exists(ARTIFACTS)) {
     ops.create(ARTIFACTS)
     ops.setProperty(ARTIFACTS, "table.bloom.enabled", "true")

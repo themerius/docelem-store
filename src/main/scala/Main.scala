@@ -8,6 +8,8 @@ import akka.pattern.ask
 import akka.util.Timeout
 import scala.concurrent.Await
 
+import java.nio.file.{ Files, Paths }
+
 import com.typesafe.config.ConfigFactory
 
 import eu.themerius.docelemstore.utils.Stats.time
@@ -28,17 +30,23 @@ object DocElemStore extends App {
   // Start one Gate actor (you can start 1..n)
   val number = conf.getInt("docelem-store.gate.number") + 1
   for (i <- 1 until number) {
-    system.actorOf(Props[Gate], s"gate-$i")
+    val gate = system.actorOf(Props[Gate], s"gate-$i")
+    fillExamples(gate)
     println(s"Starting gate-$i")
   }
 
-  // Schedule a FLUSH after 5s every 10s.
-  // Only needed for testing...
-  // if (conf.getBoolean("docelem-store.timedFlush")) {
-  //   import system.dispatcher
-  //   system.scheduler.schedule(5000.milliseconds,
-  //     10000.milliseconds,
-  //     storage,
-  //     "FLUSH")
-  // }
+  def getSampleXCAS = {
+    val uri = getClass.getResource("/Version28-06.xml").toURI // System.getProperty("xmi.path")
+    val bytes = Files.readAllBytes(Paths.get(uri))
+    new String(bytes, "UTF-8")
+  }
+
+  def fillExamples(gate: ActorRef) = {
+    val header = Map(
+      "content-type" -> "xmi",
+      "event" -> "ExtractCtgovUseCase"
+    )
+    gate ! Consume(header, getSampleXCAS)
+  }
+
 }

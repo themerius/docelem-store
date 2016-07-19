@@ -25,6 +25,24 @@ And [Keep a CHANGELOG](http://keepachangelog.com):
     - `Fixed` for any bug fixes. (+PATCH)
     - `Security` to invite users to upgrade in case of vulnerabilities. (+PATCH)
 
+## 0.5.0 - 2016-06-24
+
+### Added
+- Now able to query only the topology
+- I2B Relation Marginal Note Example (in the unit tests)
+- HierarcyUtils
+  - They contain interfaces and algorithms for creating hierarcy informations for document element topologies
+  - It's generic!
+  - Works also with offset informations of annotations
+  - CTgov example
+
+### Changed
+- Refactoring XCasModels. Made them more abstract and reusable!
+
+### Fixed
+- Some fixes to build a fat JAR (dependencies, logger)
+- header naming: using now PubMed:ID instead of pmid:ID
+
 ## 0.4.0 - 2016-04-12
 
 Essentially this is a release for showing the BEL/BELIEF layer prototype, for pre milestone dicsussions.
