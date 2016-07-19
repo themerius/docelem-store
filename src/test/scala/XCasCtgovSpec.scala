@@ -54,7 +54,7 @@ class XCasCtgovSpec extends FlatSpec with Matchers {
     val corpus = casModel.applyRules
 
     // 2 artifacts per (sub)section
-    corpus.artifacts.size should be (2*9)
+    corpus.artifacts.size should be (2*24)
 
     corpus.artifacts(0).sigmatics should equal (
       new URI ("section/name:overview+overview")
