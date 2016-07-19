@@ -13,7 +13,9 @@ case class KnowledgeArtifact(
   semantics: URI,  // represents a attribute of the doc elem.
   model: Array[Byte],  // the raw (domain) model (or signal) as byte array.
   meta: Meta
-)
+) extends Ordered[KnowledgeArtifact] {
+  def compare( a:KnowledgeArtifact ) = sigmatics.compareTo(a.sigmatics) 
+}
 
 case class Meta(
   specification: URI,  // link to the model's specification document.

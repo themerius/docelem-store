@@ -11,6 +11,7 @@ import com.typesafe.config.ConfigFactory
 import java.nio.file.{ Files, Paths }
 
 
+@Ignore
 class GateActorCtgovSpec(_system: ActorSystem)
   extends TestKit(_system)
   with ImplicitSender

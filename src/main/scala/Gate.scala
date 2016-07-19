@@ -126,7 +126,20 @@ class Gate extends Actor {
     Router(RoundRobinRoutingLogic(), routees)
   }
 
-  val accumuloQuery = context.actorOf(Props[AccumuloQueryer])
+  var UNSCHOENER_HACK: akka.actor.ActorRef = null
+
+  val routerIM = {
+    val routees = Vector.fill(1) {
+      val r = context.actorOf(Props[InMemoryStore])
+      UNSCHOENER_HACK = r
+      context.watch(r)
+      ActorRefRoutee(r)
+    }
+    Router(RoundRobinRoutingLogic(), routees)
+  }
+
+  //val accumuloQuery = context.actorOf(Props[AccumuloQueryer])
+  val accumuloQuery = UNSCHOENER_HACK
 
   // Consume and distribute messages
   def receive = {
@@ -202,7 +215,7 @@ class Gate extends Actor {
             }
           }
 
-          routerF.route(
+          routerIM.route(
             Transform2DocElem(model, textContent.getBytes), sender()
           )
 
