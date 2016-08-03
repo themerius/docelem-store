@@ -1,19 +1,20 @@
 name := """docelem-store"""
 
-version := "0.5.0"
+version := "0.6.0-SNAPSHOT"
 
 scalaVersion := "2.11.8"
 
-resolvers += "SCAI Artifactory" at "http://scai-repos.scai.fraunhofer.de:8080/artifactory/libs-release-local/"
-resolvers += "SCAI Artifactory Snapshot" at "http://scai-repos.scai.fraunhofer.de:8080/artifactory/libs-snapshot-local/"
+// Additional repositories
+resolvers += Resolver.mavenLocal
+resolvers += "SCAI Artifactory" at "https://arty.scai.fraunhofer.de:443/artifactory/libs-release-local"
+resolvers += "SCAI Artifactory Snapshot" at "https://arty.scai.fraunhofer.de:443/artifactory/libs-snapshot-local"
 
-resolvers += "JBoss Maven" at "https://repository.jboss.org/nexus/content/groups/public"
+// credentials += Credentials("Artifactory Realm", "arty.scai.fraunhofer.de", "user", "password")
 
 credentials += Credentials(Path.userHome / ".m2" / "sbt-credentials")
-
 /* Example for ~/.m2/sbt-credentials
 realm=Artifactory Realm
-host=scai-repos.scai.fraunhofer.de
+host=arty.scai.fraunhofer.de
 user=
 password=
 */
@@ -32,8 +33,7 @@ libraryDependencies ++= Seq(
 )
 
 // Communication with broker
-libraryDependencies += "org.apache.geronimo.specs" % "geronimo-jms_1.1_spec" % "1.1.1"
-libraryDependencies += "org.fusesource.stompjms" % "stompjms-client" % "1.19"
+libraryDependencies += "de.fraunhofer.scai.bio.msa" % "MicroServiceCore" % "2.2"
 
 // SCAI Artifacts
 libraryDependencies += "de.fraunhofer.scai.bio.uima" % "UIMACorePipelet" % "7.0"
@@ -64,6 +64,7 @@ javaOptions in run += s"-Dconfig.file=${System.getProperty("config.file")}"
 //javaOptions in run += "-XX:NewRatio=1"
 //javaOptions in run += "-XX:+UseParallelOldGC"
 javaOptions in run += "-Dhawtdispatch.threads=4"
+javaOptions in run += "-Dstompjms.heartbeat=60000,60000"
 javaOptions in test += "-XX:+CMSClassUnloadingEnabled"
 
 // Set JAR name for

@@ -24,7 +24,10 @@ class InMemoryStore extends Actor {
   val xmlGenerator = new PrettyPrinter(80, 2)
   val version = s"${BuildInfo.name}:${BuildInfo.version}"
 
-  var WAL = Set.empty[KnowledgeArtifact]  // TODO: use TreeSet?
+  var latestVersion = Map.empty[KnowledgeArtifactKey, KnowledgeArtifact]
+
+  val now = String.format("%tFT%<tRZ", java.util.Calendar.getInstance())
+  val persistentWAL = new java.io.FileOutputStream(s"session-${now}.dlog", true)
 
   def receive = {
 
@@ -35,15 +38,20 @@ class InMemoryStore extends Actor {
       model.deserialize(data)
       val corpus = model.applyRules
 
-      // Write it to the write ahead log (set)
-      WAL = WAL ++ corpus.artifacts.map { artifact =>
-        KnowledgeArtifact(
+      // Write it to the write ahead log and the latest version in memory
+      corpus.artifacts.map { artifact =>
+        if (!model.isInstanceOf[SimpleWalLineModel]) {
+          writePersitentWAL(artifact)
+        }
+
+        val key = KnowledgeArtifactKey(
           artifact.sigmatics,
           artifact.pragmatics,
           artifact.semantics,
-          artifact.model,
-          Meta(artifact.meta.specification, 0, 0L)  // TODO: useful refactoring for usage of fingerprint and timestamp...
+          artifact.meta.specification,
+          MurmurHash3.bytesHash(artifact.model)
         )
+        latestVersion = latestVersion.updated(key, artifact)
       }
 
       log.info(s"(WAL) swallows ${corpus.artifacts.size} artifacts.")
@@ -117,18 +125,18 @@ class InMemoryStore extends Actor {
 
   def scanSingleDocelem(uri: URI): Corpus = time (s"InMemory:scanSingleDocelem($uri)") {
 
-    val artifacts = WAL.filter(_.sigmatics == uri)
+    val artifacts = latestVersion.filterKeys(_.sigmatics == uri).values
     Corpus(artifacts.toSeq)
 
   }
 
   def scanTopology(uri: URI): Corpus = time (s"InMemory:scanTopology($uri)") {
 
-    val involvedArtifacts = WAL.filter(_.pragmatics == uri)
+    val involvedArtifacts = latestVersion.filterKeys(_.pragmatics == uri).values
 
     val artifacts = for (involved <- involvedArtifacts) yield {
       val uri = involved.sigmatics
-      WAL.filter(_.sigmatics == uri)
+      latestVersion.filterKeys(_.sigmatics == uri).values
     }
 
     Corpus(artifacts.flatten.toSeq)
@@ -137,7 +145,7 @@ class InMemoryStore extends Actor {
 
   def scanTopologyOnlyHierarchy(uri: URI): scala.xml.Node = time (s"InMemory:scanTopologyOnlyHierarchy($uri)") {
 
-    val involvedArtifacts = WAL.filter(_.pragmatics == uri)
+    val involvedArtifacts = latestVersion.filterKeys(_.pragmatics == uri).values
 
     val docelems = for (involved <- involvedArtifacts) yield {
       <docelem uri={involved.sigmatics.toString} follows={involved.semantics.toString} rank={new String(involved.model)} />
@@ -149,5 +157,12 @@ class InMemoryStore extends Actor {
 
   }
 
+  def writePersitentWAL(artifact: KnowledgeArtifact) = {
+    val head = s"${artifact.meta.timestamp}\t${artifact.sigmatics}\t${artifact.pragmatics}\t${artifact.semantics}\t${artifact.meta.specification}\t"
+
+    persistentWAL.write(head.getBytes)
+    persistentWAL.write(new String(artifact.model).replaceAll("\n", "\\\\n").getBytes)
+    persistentWAL.write("\n".getBytes)
+  }
 
 }

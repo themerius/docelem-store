@@ -1,0 +1,56 @@
+1469706385520	header/PubMed:26673833	_	header/header	freetext	The Neuroprotective Effect of Dark Chocolate in Monosodium Glutamate-Induced Nontransgenic Alzheimer Disease Model Rats: Biochemical, Behavioral, and Histological Studies.
+1469706385521	header/PubMed:26673833	_	header/title	freetext	The Neuroprotective Effect of Dark Chocolate in Monosodium Glutamate-Induced Nontransgenic Alzheimer Disease Model Rats: Biochemical, Behavioral, and Histological Studies.
+1469706385521	header/PubMed:26673833	_	header/authors	freetext	Sowmya Madhavadas, VijayaKumar Kapgal, BinduM Kutty, Sarada Subramanian
+1469706385521	header/PubMed:26673833	_	header/publicationDate	freetext	2016-08-03
+1469706385526	sentence/murmur3:d28f1892	_	sentence/sentence	freetext	The Neuroprotective Effect of Dark Chocolate in Monosodium Glutamate-Induced Nontransgenic Alzheimer Disease Model Rats: Biochemical, Behavioral, and Histological Studies.
+1469706385526	sentence/murmur3:ae732079	_	sentence/sentence	freetext	The vulnerability to oxidative stress and cognitive decline continue to increase during both normal and pathological aging.
+1469706385526	sentence/murmur3:e44c1f8	_	sentence/sentence	freetext	Dietary changes and sedentary life style resulting in mid-life obesity and type 2 diabetes, if left uncorrected, further add to the risk of cognitive decline and Alzheimer disease (AD) in the later stages of life.
+1469706385526	sentence/murmur3:58a4341e	_	sentence/sentence	freetext	Certain antioxidant agents such as dietary polyphenols, taken in adequate quantities, have been suggested to improve the cognitive processes.
+1469706385526	sentence/murmur3:8a06ad53	_	sentence/sentence	freetext	In this study, we examined the effect of oral administration of dark chocolate (DC) containing 70% cocoa solids and 4% total polyphenol content for three months at a dose of 500 mg/Kg body weight per day to 17-month-old monosodium glutamate treated obese Sprague-Dawley rats, earlier characterized as a nontransgenic AD (NTAD) rat model after reversal of obesity, diabetes, and consequent cognitive impairments.
+1469706385526	sentence/murmur3:29861692	_	sentence/sentence	freetext	The results demonstrated that DC reduced the hyperglycemia, inhibited the cholinesterase activity in the hippocampal tissue homogenates, and improved the cognitive performance in spatial memory related Barnes maze task.
+1469706385526	sentence/murmur3:cefe9e11	_	sentence/sentence	freetext	Histological studies revealed an increase in cell volume in the DC treated rats in the CA3 region of the hippocampus.
+1469706385526	sentence/murmur3:93f9caf1	_	sentence/sentence	freetext	These findings demonstrated the benefits of DC in enhancing cognitive function and cholinergic activity in the hippocampus of the aged NTAD rats while correcting their metabolic disturbances.
+1469706385537	header/PubMed:26673833	header/PubMed:26673833	topo/header/PubMed:26673833	topo-rank@v1	0
+1469706385546	document-title/murmur3:d28f1892	header/PubMed:26673833	topo/header/PubMed:26673833	topo-rank@v1	0
+1469706385546	sentence/murmur3:d28f1892	header/PubMed:26673833	topo/document-title/murmur3:d28f1892	topo-rank@v1	0
+1469706385547	abstract/murmur3:8f277071	header/PubMed:26673833	topo/header/PubMed:26673833	topo-rank@v1	173
+1469706385548	sentence/murmur3:ae732079	header/PubMed:26673833	topo/abstract/murmur3:8f277071	topo-rank@v1	173
+1469706385549	sentence/murmur3:e44c1f8	header/PubMed:26673833	topo/abstract/murmur3:8f277071	topo-rank@v1	297
+1469706385549	sentence/murmur3:58a4341e	header/PubMed:26673833	topo/abstract/murmur3:8f277071	topo-rank@v1	511
+1469706385550	sentence/murmur3:8a06ad53	header/PubMed:26673833	topo/abstract/murmur3:8f277071	topo-rank@v1	653
+1469706385551	sentence/murmur3:29861692	header/PubMed:26673833	topo/abstract/murmur3:8f277071	topo-rank@v1	1065
+1469706385551	sentence/murmur3:cefe9e11	header/PubMed:26673833	topo/abstract/murmur3:8f277071	topo-rank@v1	1285
+1469706385552	sentence/murmur3:93f9caf1	header/PubMed:26673833	topo/abstract/murmur3:8f277071	topo-rank@v1	1403
+1469706385542	sentence/murmur3:29861692	HGNC	concept/homo_sapiens_ns_mapped:bche	annotation@v1	{\n      "begin": 74,\n      "end": 88,\n      "attr": "sentence/sentence",\n      "ref": "concept/homo_sapiens_ns_mapped:bche"\n    }
+1469706456354	header/PubMed:26673833	_	header/header	freetext	The Neuroprotective Effect of Dark Chocolate in Monosodium Glutamate-Induced Nontransgenic Alzheimer Disease Model Rats: Biochemical, Behavioral, and Histological Studies.
+1469706456354	header/PubMed:26673833	_	header/title	freetext	The Neuroprotective Effect of Dark Chocolate in Monosodium Glutamate-Induced Nontransgenic Alzheimer Disease Model Rats: Biochemical, Behavioral, and Histological Studies.
+1469706456354	header/PubMed:26673833	_	header/authors	freetext	Sowmya Madhavadas, VijayaKumar Kapgal, BinduM Kutty, Sarada Subramanian
+1469706456354	header/PubMed:26673833	_	header/publicationDate	freetext	2016-08-03
+1469706456357	sentence/murmur3:d28f1892	_	sentence/sentence	freetext	The Neuroprotective Effect of Dark Chocolate in Monosodium Glutamate-Induced Nontransgenic Alzheimer Disease Model Rats: Biochemical, Behavioral, and Histological Studies.
+1469706456357	sentence/murmur3:ae732079	_	sentence/sentence	freetext	The vulnerability to oxidative stress and cognitive decline continue to increase during both normal and pathological aging.
+1469706456357	sentence/murmur3:e44c1f8	_	sentence/sentence	freetext	Dietary changes and sedentary life style resulting in mid-life obesity and type 2 diabetes, if left uncorrected, further add to the risk of cognitive decline and Alzheimer disease (AD) in the later stages of life.
+1469706456357	sentence/murmur3:58a4341e	_	sentence/sentence	freetext	Certain antioxidant agents such as dietary polyphenols, taken in adequate quantities, have been suggested to improve the cognitive processes.
+1469706456357	sentence/murmur3:8a06ad53	_	sentence/sentence	freetext	In this study, we examined the effect of oral administration of dark chocolate (DC) containing 70% cocoa solids and 4% total polyphenol content for three months at a dose of 500 mg/Kg body weight per day to 17-month-old monosodium glutamate treated obese Sprague-Dawley rats, earlier characterized as a nontransgenic AD (NTAD) rat model after reversal of obesity, diabetes, and consequent cognitive impairments.
+1469706456357	sentence/murmur3:29861692	_	sentence/sentence	freetext	The results demonstrated that DC reduced the hyperglycemia, inhibited the cholinesterase activity in the hippocampal tissue homogenates, and improved the cognitive performance in spatial memory related Barnes maze task.
+1469706456357	sentence/murmur3:cefe9e11	_	sentence/sentence	freetext	Histological studies revealed an increase in cell volume in the DC treated rats in the CA3 region of the hippocampus.
+1469706456357	sentence/murmur3:93f9caf1	_	sentence/sentence	freetext	These findings demonstrated the benefits of DC in enhancing cognitive function and cholinergic activity in the hippocampus of the aged NTAD rats while correcting their metabolic disturbances.
+1469706456358	header/PubMed:26673833	header/PubMed:26673833	topo/header/PubMed:26673833	topo-rank@v1	0
+1469706456361	document-title/murmur3:d28f1892	header/PubMed:26673833	topo/header/PubMed:26673833	topo-rank@v1	0
+1469706456361	sentence/murmur3:d28f1892	header/PubMed:26673833	topo/document-title/murmur3:d28f1892	topo-rank@v1	0
+1469706456362	abstract/murmur3:8f277071	header/PubMed:26673833	topo/header/PubMed:26673833	topo-rank@v1	173
+1469706456362	sentence/murmur3:ae732079	header/PubMed:26673833	topo/abstract/murmur3:8f277071	topo-rank@v1	173
+1469706456363	sentence/murmur3:e44c1f8	header/PubMed:26673833	topo/abstract/murmur3:8f277071	topo-rank@v1	297
+1469706456364	sentence/murmur3:58a4341e	header/PubMed:26673833	topo/abstract/murmur3:8f277071	topo-rank@v1	511
+1469706456364	sentence/murmur3:8a06ad53	header/PubMed:26673833	topo/abstract/murmur3:8f277071	topo-rank@v1	653
+1469706456365	sentence/murmur3:29861692	header/PubMed:26673833	topo/abstract/murmur3:8f277071	topo-rank@v1	1065
+1469706456366	sentence/murmur3:cefe9e11	header/PubMed:26673833	topo/abstract/murmur3:8f277071	topo-rank@v1	1285
+1469706456366	sentence/murmur3:93f9caf1	header/PubMed:26673833	topo/abstract/murmur3:8f277071	topo-rank@v1	1403
+1469706456359	sentence/murmur3:d28f1892	MESHD	concept/mesh_disease_ns_mapped:alzheimer's_disease	annotation@v1	{\n      "begin": 91,\n      "end": 108,\n      "attr": "sentence/sentence",\n      "ref": "concept/mesh_disease_ns_mapped:alzheimer's_disease"\n    }
+1469706456359	sentence/murmur3:e44c1f8	MESHD	concept/mesh_disease_ns_mapped:obesity	annotation@v1	{\n      "begin": 63,\n      "end": 70,\n      "attr": "sentence/sentence",\n      "ref": "concept/mesh_disease_ns_mapped:obesity"\n    }
+1469706456359	sentence/murmur3:e44c1f8	MESHD	concept/mesh_disease_ns_mapped:type_2_diabetes_mellitus	annotation@v1	{\n      "begin": 75,\n      "end": 90,\n      "attr": "sentence/sentence",\n      "ref": "concept/mesh_disease_ns_mapped:type_2_diabetes_mellitus"\n    }
+1469706456359	sentence/murmur3:e44c1f8	MESHD	concept/mesh_disease_ns_mapped:alzheimer's_disease	annotation@v1	{\n      "begin": 162,\n      "end": 179,\n      "attr": "sentence/sentence",\n      "ref": "concept/mesh_disease_ns_mapped:alzheimer's_disease"\n    }
+1469706456360	sentence/murmur3:e44c1f8	MESHD	concept/mesh_disease_ns_mapped:alzheimer's_disease	annotation@v1	{\n      "begin": 181,\n      "end": 183,\n      "attr": "sentence/sentence",\n      "ref": "concept/mesh_disease_ns_mapped:alzheimer's_disease"\n    }
+1469706456360	sentence/murmur3:8a06ad53	MESHD	concept/mesh_disease_ns_mapped:obesity	annotation@v1	{\n      "begin": 249,\n      "end": 254,\n      "attr": "sentence/sentence",\n      "ref": "concept/mesh_disease_ns_mapped:obesity"\n    }
+1469706456360	sentence/murmur3:8a06ad53	MESHD	concept/mesh_disease_ns_mapped:alzheimer's_disease	annotation@v1	{\n      "begin": 317,\n      "end": 319,\n      "attr": "sentence/sentence",\n      "ref": "concept/mesh_disease_ns_mapped:alzheimer's_disease"\n    }
+1469706456360	sentence/murmur3:8a06ad53	MESHD	concept/mesh_disease_ns_mapped:obesity	annotation@v1	{\n      "begin": 355,\n      "end": 362,\n      "attr": "sentence/sentence",\n      "ref": "concept/mesh_disease_ns_mapped:obesity"\n    }
+1469706456360	sentence/murmur3:29861692	MESHD	concept/mesh_disease_ns_mapped:hyperglycemia	annotation@v1	{\n      "begin": 45,\n      "end": 58,\n      "attr": "sentence/sentence",\n      "ref": "concept/mesh_disease_ns_mapped:hyperglycemia"\n    }

@@ -35,18 +35,31 @@ object DocElemStore extends App {
     println(s"Starting gate-$i")
   }
 
-  def getSampleXCAS = {
-    val uri = getClass.getResource("/Version28-06.xml").toURI // System.getProperty("xmi.path")
-    val bytes = Files.readAllBytes(Paths.get(uri))
-    new String(bytes, "UTF-8")
-  }
-
   def fillExamples(gate: ActorRef) = {
-    val header = Map(
-      "content-type" -> "xmi",
-      "event" -> "ExtractCtgovUseCase"
-    )
-    gate ! Consume(header, getSampleXCAS)
+
+    val uri = getClass.getResource("/example.dlogs").toURI
+    val folder = Paths.get(uri).toFile
+    if (folder.isDirectory) {
+      val files = folder.listFiles
+      for (file <- files) {
+
+        val reader = Files.newBufferedReader(file.toPath)
+
+        val header = Map(
+          "content-type" -> "wal-line",
+          "event" -> ""
+        )
+
+        var line = reader.readLine()
+        while (line != null) {
+          gate ! Consume(header, line)
+          line = reader.readLine()
+        }
+
+      }
+    }
+
+
   }
 
 }

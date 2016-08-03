@@ -442,7 +442,7 @@ trait ExtractNNEs extends CasModel with ModelTransRules {
     val annotModel = s"""{
       "begin": ${nne.getBegin - sen.getBegin},
       "end": ${nne.getEnd - sen.getBegin},
-      "attr": "header/header",
+      "attr": "sentence/sentence",
       "ref": "${uri(nne)}"
     }""".getBytes
 
@@ -519,7 +519,7 @@ trait ExtractHeader extends CasModel with ModelTransRules {
       .map(p => s"${p.getForename} ${p.getSurname}")
       .mkString(", ")
 
-    val pubDate = String.format("%tFT%<tRZ", header.getPublicationDate.getDate)
+    val pubDate = String.format("%tF", header.getPublicationDate.getDate)
 
     Seq(
       KnowledgeArtifact(

@@ -5,6 +5,14 @@ import scala.xml.Node
 
 case class Transform2DocElem(model: ModelTransRules, data: Array[Byte])
 
+case class KnowledgeArtifactKey(
+  sigmatics: URI,  // indication of a information.
+  pragmatics: URI, // the annotation layer.
+  semantics: URI,  // represents a attribute of the doc elem.
+  specification: URI,  // link to the model's specification document.
+  fingerprint: Int = 0  // fingerprint of the model.
+)
+
 // TODO: do we need a special constrainted/extended URI?
 // The @, :, !, ...
 case class KnowledgeArtifact(
@@ -14,7 +22,7 @@ case class KnowledgeArtifact(
   model: Array[Byte],  // the raw (domain) model (or signal) as byte array.
   meta: Meta
 ) extends Ordered[KnowledgeArtifact] {
-  def compare( a:KnowledgeArtifact ) = sigmatics.compareTo(a.sigmatics) 
+  def compare( a:KnowledgeArtifact ) = sigmatics.compareTo(a.sigmatics)
 }
 
 case class Meta(
