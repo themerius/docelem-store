@@ -33,11 +33,11 @@ libraryDependencies ++= Seq(
 )
 
 // Communication with broker
-libraryDependencies += "de.fraunhofer.scai.bio.msa" % "MicroServiceCore" % "2.2"
+libraryDependencies += "de.fraunhofer.scai.bio.msa" % "MicroServiceCore" % "2.3-SNAPSHOT"
 
 // SCAI Artifacts
-libraryDependencies += "de.fraunhofer.scai.bio.uima" % "UIMACorePipelet" % "7.0"
-libraryDependencies += "de.fraunhofer.scai.bio.uima" % "UIMATypeSystem" % "7.0"
+libraryDependencies += "de.fraunhofer.scai.bio.uima" % "UIMACorePipelet" % "7.2-SNAPSHOT"
+libraryDependencies += "de.fraunhofer.scai.bio.uima" % "UIMATypeSystem" % "7.2-SNAPSHOT"
 
 // Fixing loggers. Kick out all logger implementations and include a simple SLF4J.
 // Multiple SLF4J (http://stackoverflow.com/questions/25208943)
@@ -64,7 +64,7 @@ javaOptions in run += s"-Dconfig.file=${System.getProperty("config.file")}"
 //javaOptions in run += "-XX:NewRatio=1"
 //javaOptions in run += "-XX:+UseParallelOldGC"
 javaOptions in run += "-Dhawtdispatch.threads=4"
-javaOptions in run += "-Dstompjms.heartbeat=60000,60000"
+javaOptions in run += "-Dstompjms.heartbeat=0,10000"
 javaOptions in test += "-XX:+CMSClassUnloadingEnabled"
 
 // Set JAR name for

@@ -66,6 +66,7 @@ class AccumuloQueryer extends Actor {
 
       val xmlTopo = scanTopologyOnlyHierarchy(uri)
       self ! PrepareReplyOnlyHierarchy(xmlTopo, reply)
+      println(xmlTopo)
       log.info(s"(Query/TopologyOnlyHierarcy) found ${(xmlTopo \ "docelem").size} elements.")
     }
 
@@ -132,9 +133,9 @@ class AccumuloQueryer extends Actor {
     scan.fetchColumnFamily(new Text(uri.toString))
 
     val ranges = new ArrayList[Range]()
-
-    for (entry <- scan.asScala) yield {
-      ranges.add(Range.exact(entry.getKey.getRow))
+    val involvedIds = scan.asScala.map(_.getKey.getRow.toString).toSet
+    for (entry <- involvedIds) yield {
+      ranges.add(Range.exact(entry))
     }
 
     // add also the header of the topology
@@ -163,7 +164,10 @@ class AccumuloQueryer extends Actor {
         )
       }
 
-    Corpus(bartifacts.toSeq)
+    val header = bartifacts.filter(_.pragmatics == uri)
+    val filtered = bartifacts.filterNot(_.pragmatics.getPath.startsWith("header/"))
+
+    Corpus((header ++ filtered).toSeq)
   }
 
   // TODO: restrict the resulting Corpus to only topology relevant infos/model (follows, rank etc.)

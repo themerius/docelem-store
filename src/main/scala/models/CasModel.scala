@@ -47,18 +47,49 @@ trait CasModel extends Model with Helper {
   }
 
   def sigmaticUri = {
-    val userId = ProvenanceUtils.getUserSuppliedID(jcas)
-    val pmidId = userId.split("PMID")
-    var idType = "PubMed"
 
-    if (header.getDocumentConcept != null) {
-      idType = header.getDocumentConcept.getIdentifierSource
+    val userSuppliedId = ProvenanceUtils.getUserSuppliedID(jcas)
+    val documentConcept = header.getDocumentConcept
+
+    var label = s"user-supplied-id:$userSuppliedId"
+
+    if (documentConcept != null) {
+
+      if (documentConcept.getPrefLabel != null) {
+        label = Some(documentConcept.getPrefLabel.getValue).getOrElse(userSuppliedId)
+      }
+
     }
 
-    pmidId match {
-      case Array("", id) => s"header/${idType}:${id}"
-      case _ => s"header/${idType}:${userId}"
+    s"header/${label}"
+
+  }
+
+  def headerSource = {
+
+    val documentConcept = header.getDocumentConcept
+    var source = "?"
+
+    if (documentConcept != null) {
+      source = Some(documentConcept.getIdentifierSource).getOrElse("?")
     }
+
+    source
+
+  }
+
+  def headerRawId = {
+
+    val userSuppliedId = ProvenanceUtils.getUserSuppliedID(jcas)
+    val documentConcept = header.getDocumentConcept
+    var id = userSuppliedId
+
+    if (documentConcept != null) {
+      id = Some(documentConcept.getIdentifier).getOrElse(userSuppliedId)
+    }
+
+    id
+
   }
 
 }
@@ -103,10 +134,11 @@ trait Helper {
 
     if (docelem.isInstanceOf[Outline]) {
       val outline = docelem.asInstanceOf[Outline]
-      val title = outline.getTitle.toLowerCase.replaceAll("\\p{P}", "").replaceAll("\\p{Z}", "_")
-      val rhetorical = if (outline.getRhetorical != null)
-        outline.getRhetorical.toLowerCase.replaceAll("\\p{P}", "").replaceAll("\\p{Z}", "_") else ""
-      s"$typeId/name:${title}+${rhetorical}"
+      val title = Some(outline.getTitle).getOrElse("")
+      val rhetorical = Some(outline.getRhetorical).getOrElse("")
+      val hash = MurmurHash3.stringHash(title + rhetorical + docelem.getCoveredText)
+      val hashHex = Integer.toHexString(hash)
+      s"$typeId/murmur3:${hashHex}"
     } else {
       val hash = MurmurHash3.stringHash(docelem.getCoveredText)
       val hashHex = Integer.toHexString(hash)
@@ -322,6 +354,68 @@ trait ExtractLists extends CasModel with ModelTransRules {
 
 }
 
+trait ExtractOutlines extends CasModel with ModelTransRules {
+
+  def outlines = JCasUtil.iterator(view, classOf[Outline]).asScala.toList
+
+  def getNumbering(sec: Outline) = {
+    if (sec.getNumbering == null) {
+      ""
+    } else {
+      var i = 0
+      var buffer = Seq[String]()
+      while (i >= 0) {
+        try {
+          val item = sec.getNumbering.getNthElement(i)
+          buffer = item +: buffer
+          i = i + 1
+        } catch {
+          case e: org.apache.uima.cas.CASRuntimeException => i = -1
+        }
+      }
+      buffer.mkString(".")
+    }
+  }
+
+  def genContentArtifacts(sec: Outline) = {
+
+    val numbering = getNumbering(sec)
+
+    Seq(
+      KnowledgeArtifact(
+        new URI(uri(sec)),
+        new URI("_"),
+        new URI(s"outline/title"),
+        Some(sec.getTitle).getOrElse("").getBytes,
+        Meta(new URI("freetext"))
+      ),
+      KnowledgeArtifact(
+        new URI(uri(sec)),
+        new URI("_"),
+        new URI(s"outline/rhetorical"),
+        Some(sec.getRhetorical).getOrElse("").getBytes,
+        Meta(new URI("freetext"))
+      ),
+      KnowledgeArtifact(
+        new URI(uri(sec)),
+        new URI("_"),
+        new URI(s"outline/level"),
+        camelToUnderscores(sec.getClass.getSimpleName).getBytes,
+        Meta(new URI("freetext"))
+      ),
+      KnowledgeArtifact(
+        new URI(uri(sec)),
+        new URI("_"),
+        new URI(s"outline/numbering"),
+        numbering.getBytes,
+        Meta(new URI("freetext"))
+      )
+    )
+
+  }
+
+}
+
 trait ExtractSections extends CasModel with ModelTransRules {
 
   def sections = JCasUtil.iterator(view, classOf[Section]).asScala.toList
@@ -446,12 +540,21 @@ trait ExtractNNEs extends CasModel with ModelTransRules {
       "ref": "${uri(nne)}"
     }""".getBytes
 
-    KnowledgeArtifact(
-      new URI(uri(sen)),
-      new URI(layerUri),
-      new URI(uri(nne)),
-      annotModel,
-      Meta(new URI("annotation@v1"), MurmurHash3.bytesHash(annotModel))
+    Seq(
+      KnowledgeArtifact(  // In Annotation Layer "Concept Source"
+        new URI(uri(sen)),
+        new URI(dictId(nne)),
+        new URI(uri(nne)),
+        annotModel,
+        Meta(new URI("annotation@v1"), MurmurHash3.bytesHash(annotModel))
+      ),
+      KnowledgeArtifact(  // In Annotation Layer "Collection Name"
+        new URI(uri(sen)),
+        new URI(layerUri),
+        new URI(uri(nne)),
+        annotModel,
+        Meta(new URI("annotation@v1"), MurmurHash3.bytesHash(annotModel))
+      )
     )
   }
 
@@ -525,15 +628,8 @@ trait ExtractHeader extends CasModel with ModelTransRules {
       KnowledgeArtifact(
         new URI(sigmaticUri),
         new URI("_"),
-        new URI("header/header"), // TODO: here should go the complete unstructured domain model...
-        header.getTitle.getBytes,
-        Meta(new URI("freetext"))
-      ),
-      KnowledgeArtifact(
-        new URI(sigmaticUri),
-        new URI("_"),
         new URI("header/title"),
-        header.getTitle.getBytes,
+        Some(header.getTitle).getOrElse("").getBytes,
         Meta(new URI("freetext"))
       ),
       KnowledgeArtifact(
@@ -548,6 +644,20 @@ trait ExtractHeader extends CasModel with ModelTransRules {
         new URI("_"),
         new URI("header/publicationDate"),
         pubDate.getBytes,
+        Meta(new URI("freetext"))
+      ),
+      KnowledgeArtifact(
+        new URI(sigmaticUri),
+        new URI("_"),
+        new URI("header/source"),
+        headerSource.getBytes,
+        Meta(new URI("URI"))
+      ),
+      KnowledgeArtifact(
+        new URI(sigmaticUri),
+        new URI("_"),
+        new URI("header/id"),
+        headerRawId.getBytes,
         Meta(new URI("freetext"))
       )
     )

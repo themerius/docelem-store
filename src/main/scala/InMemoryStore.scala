@@ -132,11 +132,18 @@ class InMemoryStore extends Actor {
 
   def scanTopology(uri: URI): Corpus = time (s"InMemory:scanTopology($uri)") {
 
-    val involvedArtifacts = latestVersion.filterKeys(_.pragmatics == uri).values
+    // get all topology items which are part of the layer of the superordinate uri
+    val involvedArtifacts = latestVersion.filterKeys(_.pragmatics == uri).values.map(_.sigmatics).toSet
 
     val artifacts = for (involved <- involvedArtifacts) yield {
-      val uri = involved.sigmatics
-      latestVersion.filterKeys(_.sigmatics == uri).values
+      val docelemUri = involved
+      latestVersion
+        .filterKeys(_.sigmatics == docelemUri) // get the complete content for the current docelem
+        .filterKeys(!_.pragmatics.getPath.startsWith("header/")) // filter the header layers, because some doc elems may in multiple documents
+        .values ++ latestVersion // expect the superordinate (it contains the table of contents), so add it again...
+        .filterKeys(_.sigmatics == docelemUri)
+        .filterKeys(_.pragmatics == uri)
+        .values
     }
 
     Corpus(artifacts.flatten.toSeq)

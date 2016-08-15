@@ -126,17 +126,7 @@ class Gate extends Actor {
   val billing = new StompJmsDestination(brokerBilling)
   val accounting = session.createProducer(billing)
 
-  // Create a router for balancing messages within the system
-  val router = {
-    val routees = Vector.fill(1) {
-      val r = context.actorOf(Props[AccumuloTranslator])
-      context.watch(r)
-      ActorRefRoutee(r)
-    }
-    Router(RoundRobinRoutingLogic(), routees)
-  }
-
-  val routerF = {
+  val routerAccumuloFeeder = {
     val routees = Vector.fill(1) {
       val r = context.actorOf(Props[AccumuloFeeder])
       context.watch(r)
@@ -147,7 +137,7 @@ class Gate extends Actor {
 
   var UNSCHOENER_HACK: akka.actor.ActorRef = null
 
-  val routerIM = {
+  val routerInMemory = {
     val routees = Vector.fill(1) {
       val r = context.actorOf(Props[InMemoryStore])
       UNSCHOENER_HACK = r
@@ -157,8 +147,8 @@ class Gate extends Actor {
     Router(RoundRobinRoutingLogic(), routees)
   }
 
-  //val accumuloQuery = context.actorOf(Props[AccumuloQueryer])
-  val accumuloQuery = UNSCHOENER_HACK
+  val accumuloQuery = context.actorOf(Props[AccumuloQueryer])
+  // val accumuloQuery = UNSCHOENER_HACK
 
   // Consume and distribute messages
   def receive = {
@@ -170,75 +160,6 @@ class Gate extends Actor {
       var trackingNr = header.getOrElse("tracking-nr", "")
 
       (contentType, event) match {
-
-        case ("gzip-xml", "ExtractHeader ExtractFrontMatter") => {
-
-          log.info("(Gate) got gzipped XCAS and configure extraction of front matter with sentences from header")
-
-          val model = new GzippedXCasModel with ExtractHeader with ExtractFrontMatter with ExtractSentences {
-            override def applyRules = {
-              val contentArtifactsHeader = genContentArtifacts(header)
-              val topologyArtifactsMatter = frontMatters
-                .map(genTopologyArtifact)
-              val topologyArtifactsTitle = frontMatters
-                .map(documentTitles).flatten
-                .map(t => genTopologyArtifact(t._1, t._2))
-              val topologyArtifactsAbstr = frontMatters
-                .map(documentAbstracts).flatten
-                .map(t => genTopologyArtifact(t._1, t._2))
-              val topologyArtifactsSentOnAbstract = frontMatters
-                .map(documentAbstracts).flatten.map(t => sentences(t._1))
-                .flatten.zipWithIndex
-                .map(t => genTopologyArtifact(t._1._1, t._1._2, t._2))
-              val topologyArtifactsSentOnTitle = frontMatters
-                .map(documentTitles).flatten.map(t => sentences(t._1))
-                .flatten.zipWithIndex
-                .map(t => genTopologyArtifact(t._1._1, t._1._2, t._2))
-              val contentArtifactsSent = sentences
-                .map(genContentArtifact)
-              val contentArtifactsTitle = documentTitles
-                .map(genContentArtifact)
-              val co = Corpus(
-                contentArtifactsHeader ++ topologyArtifactsMatter ++
-                topologyArtifactsTitle ++ topologyArtifactsAbstr ++
-                topologyArtifactsSentOnAbstract ++ topologyArtifactsSentOnTitle ++
-                contentArtifactsTitle ++ contentArtifactsSent
-              )
-              co
-            }
-          }
-
-          routerF.route(
-            Transform2DocElem(model, textContent.getBytes), sender()
-          )
-
-        }
-
-        case ("xmi", "ExtractCtgovUseCase") => {
-
-          log.info("(Gate) XMI and configure extraction of the CTGOV use case")
-
-          // TODO: extract also sentences and paragraphs?
-          // TODO: refactor sentence/paragraphs so that they use the generic hierarchy trait
-          // TODO: refactor sections trait, such that it is more generic (e.g. using Outline type)
-
-          val model = new XCasModel with ExtractHeader with ExtractSections with ExtractLists with ExtractGenericHierarchy with ExtractSentences {
-            override def applyRules = {
-              val headerArtifacts = genContentArtifacts(header)
-              val sectionsArtifacts = sections.map(genContentArtifacts).flatten
-              val subSectionsArtifacts = subSections.map(genContentArtifacts).flatten
-              val listAritfacts = lists.map(genContentArtifact)
-              val sentenceArtifacts = sentences.map(genContentArtifact)
-              val topologyArtifacts = hierarchizedDocelems.map(genTopologyArtifact)
-              Corpus(headerArtifacts ++ sectionsArtifacts ++ subSectionsArtifacts ++ listAritfacts ++ sentenceArtifacts ++ topologyArtifacts)
-            }
-          }
-
-          routerIM.route(
-            Transform2DocElem(model, textContent.getBytes), sender()
-          )
-
-        }
 
         case ("gzip-xml", "ExtractRelations") => {
 
@@ -271,7 +192,7 @@ class Gate extends Actor {
             }
           }
 
-          routerF.route(
+          routerAccumuloFeeder.route(
             Transform2DocElem(model, textContent.getBytes), sender()
           )
 
@@ -281,20 +202,24 @@ class Gate extends Actor {
 
           log.info("(Gate) got gzipped XCAS, configure for document extraction only")
 
-          val model = new GzippedXCasModel with ExtractHeader with ExtractGenericHierarchy with ExtractSentences with ExtractNNEs {
+          val model = new GzippedXCasModel with ExtractHeader with ExtractGenericHierarchy with ExtractSentences with ExtractOutlines with ExtractNNEs {
             override def applyRules = {
               // header, setences, hierarcy
               val headerArtifacts = genContentArtifacts(header)
               val sentenceArtifacts = sentences.map(genContentArtifact)
+              val outlineArtifacts = outlines.map(genContentArtifacts).flatten
               val topologyArtifacts = hierarchizedDocelems.map(genTopologyArtifact)
               // NNEs
-              val nneArtifacts = sentences.map(nnes).flatten.map(t => genAnnotationArtifact(t._1, t._2) )
+              val nneArtifacts = sentences.map(nnes).flatten.map(t => genAnnotationArtifact(t._1, t._2) ).flatten
               // assemble Corpus
-              Corpus(headerArtifacts ++ sentenceArtifacts ++ topologyArtifacts ++ nneArtifacts)
+              Corpus(headerArtifacts ++ sentenceArtifacts ++ outlineArtifacts ++ topologyArtifacts ++ nneArtifacts)
             }
           }
 
-          routerIM.route(
+          // routerInMemory.route(
+          //   Transform2DocElem(model, textContent.getBytes), sender()
+          // )
+          routerAccumuloFeeder.route(
             Transform2DocElem(model, textContent.getBytes), sender()
           )
 
@@ -304,9 +229,12 @@ class Gate extends Actor {
 
           log.info("(Gate) got WAL line")
 
-          routerIM.route(
+          routerInMemory.route(
             Transform2DocElem(new SimpleWalLineModel, textContent.getBytes), sender()
           )
+          // routerAccumuloFeeder.route(
+          //   Transform2DocElem(new SimpleWalLineModel, textContent.getBytes), sender()
+          // )
 
         }
 
@@ -337,27 +265,7 @@ class Gate extends Actor {
         }
       }
 
-      // TODO: integrate that into the other match/case
-      event match {
-        case "FoundCorpus" => {
-          router.route(FoundCorpus(textContent), sender())
-          //self ! Accounting(event, "", trackingNr, "1 corpus")
-        }
-        case "QueryDocelem" => {
-          router.route(QueryDocelem(textContent, replyTo.toString, trackingNr), sender())
-          //self ! Accounting(event, textContent, trackingNr, "1 query")
-        }
-        case "QueryAnnotationIndex" => {
-          router.route(QueryAnnotationIndex(textContent, replyTo.toString, trackingNr), sender())
-          //self ! Accounting(event, textContent, trackingNr, "1 query")
-        }
-        case _ => {
-          println("Undefined event.")
-        }
-      }
     }
-
-
 
     case Reply(content, to, trackingNr) => time (s"Gate:Reply($to)") {
       val destination = new StompJmsDestination(to)
