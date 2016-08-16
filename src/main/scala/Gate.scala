@@ -204,11 +204,12 @@ class Gate extends Actor {
 
           val model = new GzippedXCasModel with ExtractHeader with ExtractGenericHierarchy with ExtractSentences with ExtractOutlines with ExtractNNEs {
             override def applyRules = {
-              // header, setences, hierarcy
+              // header, setences, ...
               val headerArtifacts = genContentArtifacts(header)
               val sentenceArtifacts = sentences.map(genContentArtifact)
               val outlineArtifacts = outlines.map(genContentArtifacts).flatten
-              val topologyArtifacts = hierarchizedDocelems.map(genTopologyArtifact)
+              // hierarcy
+              val topologyArtifacts = addTopologyTag(hierarchizedDocelems.map(genTopologyArtifact))
               // NNEs
               val nneArtifacts = sentences.map(nnes).flatten.map(t => genAnnotationArtifact(t._1, t._2) ).flatten
               // assemble Corpus

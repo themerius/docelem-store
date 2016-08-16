@@ -2,6 +2,8 @@ package eu.themerius.docelemstore
 
 import akka.actor.{ Actor }
 import akka.event.Logging
+import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext.Implicits.global
 
 import org.apache.accumulo.core.data.Mutation
 import org.apache.accumulo.core.client.BatchWriterConfig
@@ -16,6 +18,7 @@ import java.net.URI
 
 case class DocElem2Accumulo(corpus: Corpus)
 case class Add2AnnotationIndex(corpus: Corpus)
+case object UpdateLocalityGroups
 
 class AccumuloFeeder extends Actor {
 
@@ -26,6 +29,12 @@ class AccumuloFeeder extends Actor {
   val configWriter = new BatchWriterConfig
   val artifactsWriter = AccumuloConnectionFactory.get.createBatchWriter(AccumuloConnectionFactory.ARTIFACTS, configWriter)
   val indexWriter = AccumuloConnectionFactory.get.createBatchWriter(AccumuloConnectionFactory.SEMANTIC_INDEX, configWriter)
+
+  context.system.scheduler.scheduleOnce(10.minutes) {
+    // Because updating the locality groups is a slow process,
+    // we schedule that all x minutes.
+    self ! UpdateLocalityGroups
+  }
 
   def receive = {
 
@@ -94,22 +103,34 @@ class AccumuloFeeder extends Actor {
       log.info(s"(indexWriter) has written ${mutations.size} mutations.")
     }
 
+    case UpdateLocalityGroups => {
+      setLocalityGroups
+    }
+
   }
 
   val otherThanAlphaOrDigits = """[^\p{Alpha}\p{Digit}]+""".r
+  var localityGroups = Map[String, Set[Text]]()
 
   def addLocalityGroup(artifact: KnowledgeArtifact) = {
     // Every document (topology) header should grouped by ColumnFamily, so Accumulo can scan fast for that topology. The can change on runtime, see Accumulo Book on page 138.
     // Note: this will need a compactation phase to apply!
     if (artifact.meta.specification.toString.startsWith("topo")) {
       val docHeader = artifact.pragmatics.toString  // pragmatics is stored at column familiy in Accumulo
-      val groupName = otherThanAlphaOrDigits.replaceAllIn(docHeader, "-")
+      val groupName = otherThanAlphaOrDigits.replaceAllIn(docHeader.split("@tag:").head, "-")
       val columnFamily = new Text(docHeader)
       // Every doccument header (= col familiy) forms a locality group
-      val groups = Map(groupName -> Set(columnFamily).asJava).asJava
+      val setWithin = localityGroups.getOrElse(groupName, Set())
+      localityGroups = localityGroups.updated(groupName, setWithin ++ Set(columnFamily))
+    }
+  }
 
-      AccumuloConnectionFactory.ops.setLocalityGroups(AccumuloConnectionFactory.ARTIFACTS, groups)
-      log.info(s"Adding $docHeader as a Accumulo Table's LocalityGroup.")
+  def setLocalityGroups = {
+    if (localityGroups.nonEmpty) {
+      val localGrpJavaMap = localityGroups.map( t => (t._1, t._2.asJava) ).asJava
+      AccumuloConnectionFactory.ops.setLocalityGroups(AccumuloConnectionFactory.ARTIFACTS, localGrpJavaMap)
+      log.info(s"Adding $localityGroups to Accumulo Table's LocalityGroups.")
+      localityGroups = Map[String, Set[Text]]()
     }
   }
 

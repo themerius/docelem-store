@@ -311,6 +311,20 @@ trait ExtractGenericHierarchy extends CasModel with ModelTransRules with Extract
     )
   }
 
+  def addTopologyTag(topologyCorpus: Seq[KnowledgeArtifact]) = {
+
+    val combinedHash = topologyCorpus.foldLeft(0) { (total, item) =>
+      val data = s"${item.sigmatics}|${item.semantics}"
+      // use hash from previous item as seed
+      MurmurHash3.stringHash(data, total)
+    }
+
+    val combinedHashStr = Integer.toHexString(combinedHash)
+    // append combinedHashStr as topology tag
+    topologyCorpus.map(item => item.copy(pragmatics = new URI(s"${item.pragmatics}@tag:${combinedHashStr}")))
+
+  }
+
 }
 
 trait ExtractLists extends CasModel with ModelTransRules {

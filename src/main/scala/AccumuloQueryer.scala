@@ -66,7 +66,6 @@ class AccumuloQueryer extends Actor {
 
       val xmlTopo = scanTopologyOnlyHierarchy(uri)
       self ! PrepareReplyOnlyHierarchy(xmlTopo, reply)
-      println(xmlTopo)
       log.info(s"(Query/TopologyOnlyHierarcy) found ${(xmlTopo \ "docelem").size} elements.")
     }
 
@@ -126,11 +125,26 @@ class AccumuloQueryer extends Actor {
     Corpus(artifacts.toSeq)
   }
 
+  def getLatestTopologyTag(uri: URI) = {
+    val auths = new Authorizations()
+    val scanHead = AccumuloConnectionFactory.get.createScanner(AccumuloConnectionFactory.ARTIFACTS, auths)
+    scanHead.setRange(Range.exact(uri.toString))
+
+    val newestTopologyTag = scanHead.asScala.filter(_.getKey.getColumnFamily.toString.startsWith(uri.toString)).toSeq.sortBy(_.getKey.getTimestamp).reverse.head.getKey.getColumnFamily
+
+    log.info(s"Newest topology tag is $newestTopologyTag")
+
+    new URI(newestTopologyTag.toString)
+  }
+
   def scanTopology(uri: URI): Corpus = {
+
+    val latestTopology = getLatestTopologyTag(uri)
+
     val auths = new Authorizations()
     val scan = AccumuloConnectionFactory.get.createScanner(AccumuloConnectionFactory.ARTIFACTS, auths)
     //scan.setRange()
-    scan.fetchColumnFamily(new Text(uri.toString))
+    scan.fetchColumnFamily(new Text(latestTopology.toString))
 
     val ranges = new ArrayList[Range]()
     val involvedIds = scan.asScala.map(_.getKey.getRow.toString).toSet
@@ -164,17 +178,21 @@ class AccumuloQueryer extends Actor {
         )
       }
 
-    val header = bartifacts.filter(_.pragmatics == uri)
+    val header = bartifacts.filter(_.pragmatics == latestTopology)
     val filtered = bartifacts.filterNot(_.pragmatics.getPath.startsWith("header/"))
 
     Corpus((header ++ filtered).toSeq)
+
   }
 
   // TODO: restrict the resulting Corpus to only topology relevant infos/model (follows, rank etc.)
   def scanTopologyOnlyHierarchy(uri: URI): scala.xml.Node = {
+
+    val latestTopology = getLatestTopologyTag(uri)
+
     val auths = new Authorizations()
     val scan = AccumuloConnectionFactory.get.createScanner(AccumuloConnectionFactory.ARTIFACTS, auths)
-    scan.fetchColumnFamily(new Text(uri.toString))
+    scan.fetchColumnFamily(new Text(latestTopology.toString))
 
     val docelems = for (entry <- scan.asScala) yield {
       val key = entry.getKey
@@ -193,6 +211,7 @@ class AccumuloQueryer extends Actor {
     <topology superordinate={uri.toString}>
       {docelems}
     </topology>
+
   }
 
 }
