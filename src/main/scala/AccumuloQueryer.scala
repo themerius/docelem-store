@@ -6,6 +6,8 @@ import akka.event.Logging
 import org.apache.accumulo.core.security.Authorizations
 import org.apache.accumulo.core.data.Range
 import org.apache.hadoop.io.Text
+import org.apache.accumulo.core.client.IteratorSetting
+import org.apache.accumulo.core.iterators.user.IntersectingIterator
 
 import scala.collection.JavaConverters._
 import scala.xml.PrettyPrinter
@@ -13,6 +15,9 @@ import scala.xml.PrettyPrinter
 import java.net.URI
 import java.lang.Long
 import java.util.ArrayList
+import java.util.Collections
+
+import eu.themerius.docelemstore.utils.Stats.time
 
 import QueryTarget.SingleDocElem
 import QueryTarget.Topology
@@ -22,6 +27,7 @@ case class BuildQuery(builder: QueryBuilder, data: Array[Byte], reply: Reply)
 case class Scan(query: Query, reply: Reply)
 case class PrepareReply(corpus: Corpus, reply: Reply)
 case class PrepareReplyOnlyHierarchy(xmlTopology: scala.xml.Node, reply: Reply)
+case class SearchTerm(pragmatics: URI, semantics: URI)
 
 // TODO: rename to AccumuloRetrieval?
 class AccumuloQueryer extends Actor {
@@ -212,6 +218,40 @@ class AccumuloQueryer extends Actor {
       {docelems}
     </topology>
 
+  }
+
+  // TESTS
+  //scanSemanticIndex(Set(SearchTerm(new URI("meddra"), new URI("concept/meddra:cancer_pain")), SearchTerm(new URI("meddra"), new URI("concept/meddra:failure_kidney"))))
+  //scanSemanticIndex(Set(SearchTerm(new URI("meddra"), new URI("concept/meddra:consumption_coagulopathy")), SearchTerm(new URI("meddra"), new URI("concept/meddra:facial_flushing"))))
+
+
+  /*
+   * This will only intersect the terms within the same row!
+  */
+  def scanSemanticIndex(terms: Set[SearchTerm]) = time("semantic index") {
+    log.info(s"(scanSemanticIndex) Search Terms: $terms")
+
+    val tableName = AccumuloConnectionFactory.SEMANTIC_INDEX
+    val authorizations = new Authorizations()
+    val numQueryThreads = 10
+    val bs = AccumuloConnectionFactory.get.createBatchScanner(tableName, authorizations, numQueryThreads)
+
+    // Assemble search terms (the will be found in the column familiy)
+    val searchTerms = terms.map(t => new Text( s"${t.pragmatics}!${t.semantics}") ).toArray
+
+    val priority = 20
+    val name = "ii"
+    val iteratorClass = classOf[IntersectingIterator]
+    val ii = new IteratorSetting(priority, name, iteratorClass)
+    IntersectingIterator.setColumnFamilies(ii, searchTerms)  // side effect on ii!
+
+    bs.addScanIterator(ii)
+    bs.setRanges(Collections.singleton(new Range()))  // scan all partitions
+
+    // return the first 100 findings
+    for (entry <- bs.asScala.take(100)) yield {
+      entry.getKey.getColumnQualifier.toString
+    }
   }
 
 }

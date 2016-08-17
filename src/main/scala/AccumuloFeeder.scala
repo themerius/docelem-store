@@ -76,29 +76,42 @@ class AccumuloFeeder extends Actor {
     }
 
     case Add2AnnotationIndex(corpus: Corpus) => {
-      val indexFilter = Set(new URI("annotation@v1"), new URI("topology@v1"), new URI("search-only"))
+      val indexFilter = Set( new URI("annotation@v1") )
       val filteredCorpus = corpus.artifacts.view.filter {
         artifact => indexFilter.contains(artifact.meta.specification)
       }
 
+      // Map of: docElemId -> (docElemId, documentHeaderId)
+      val docElemId_to_documentHeaderIds = corpus.artifacts
+        .filter(_.meta.specification.toString.startsWith("topo"))
+        .map(item => (item.sigmatics.toString, item.pragmatics.toString.split("@tag:").head))
+        .groupBy(_._1)
+
       val mutations = filteredCorpus.map { artifact =>
         val layerAndAttribute = s"${artifact.pragmatics}!${artifact.semantics}"
         val docElemId = artifact.sigmatics.toString
-
-        // calculate a partition ID:
-        // every entry with the same 'document id' (means doc elem id)
-        // will be placed into the same partition
-        val partitionId = Math.abs(MurmurHash3.stringHash(docElemId)) % NUM_PARTITIONS
+        val documentHeaderIds = docElemId_to_documentHeaderIds(docElemId).map(_._2).toSet
 
         // Schema:
         // PARTITON : layer!attribute : docElemId : (None)
-        val mutation = new Mutation(partitionId.toString)
-        mutation.put(layerAndAttribute, docElemId, "")
-        mutation
+
+        for (documentHeaderId <- documentHeaderIds) yield {
+          // calculate a partition ID:
+          // every entry with the same 'document id' (means doc elem id)
+          // will be placed into the same partition
+          val partitionId = Math.abs(MurmurHash3.stringHash(documentHeaderId)) % NUM_PARTITIONS
+          val mutation = new Mutation(partitionId.toString)
+          // here we merge the annotations into the "entire document"
+          mutation.put(layerAndAttribute, documentHeaderId, "")
+          // TODO: in future we want query annotations on sections or sentences (= the leafs)... Maybe we want that in an extra table! Implemenation for sentences/leafs will look like this:
+          // mutation.put(layerAndAttribute, docElemId, "")
+          mutation
+        }
+
       }
 
       // send mutations to accumulo
-      indexWriter.addMutations(mutations.force.toIterable.asJava)
+      indexWriter.addMutations(mutations.flatten.toIterable.asJava)
       //indexWriter.flush
       log.info(s"(indexWriter) has written ${mutations.size} mutations.")
     }
