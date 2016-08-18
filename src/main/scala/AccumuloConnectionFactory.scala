@@ -59,6 +59,16 @@ object AccumuloConnectionFactory {
     ops.setProperty(SEMANTIC_INDEX, "table.bloom.enabled", "true")
   }
 
+  // topology_tag_id
+  //   :: contains|created_by|curated|...
+  //   :: docelem_uri
+  //   :: nil
+  val TOPOLOGY_INDEX = "topology_index_dev"
+  if (!ops.exists(TOPOLOGY_INDEX)) {
+    ops.create(TOPOLOGY_INDEX)
+    ops.setProperty(TOPOLOGY_INDEX, "table.bloom.enabled", "true")
+  }
+
   // GRANT permissions
   val secOps = conn.securityOperations()
   val newRootAuths = new Authorizations("public")

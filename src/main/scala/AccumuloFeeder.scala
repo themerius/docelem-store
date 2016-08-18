@@ -15,10 +15,15 @@ import scala.collection.JavaConverters._
 
 import java.net.URI
 
+object TableType extends Enumeration {
+  type TableType = Value
+  val Artifacts, Semantic, Topology = Value
+}
+import TableType._
 
+case class Add2Accumulo(corpus: Corpus, table: TableType)
 case class DocElem2Accumulo(corpus: Corpus)
 case class Add2AnnotationIndex(corpus: Corpus)
-case object UpdateLocalityGroups
 
 class AccumuloFeeder extends Actor {
 
@@ -29,12 +34,7 @@ class AccumuloFeeder extends Actor {
   val configWriter = new BatchWriterConfig
   val artifactsWriter = AccumuloConnectionFactory.get.createBatchWriter(AccumuloConnectionFactory.ARTIFACTS, configWriter)
   val indexWriter = AccumuloConnectionFactory.get.createBatchWriter(AccumuloConnectionFactory.SEMANTIC_INDEX, configWriter)
-
-  context.system.scheduler.scheduleOnce(10.minutes) {
-    // Because updating the locality groups is a slow process,
-    // we schedule that all x minutes.
-    self ! UpdateLocalityGroups
-  }
+  val topologyIndexWriter = AccumuloConnectionFactory.get.createBatchWriter(AccumuloConnectionFactory.TOPOLOGY_INDEX, configWriter)
 
   def receive = {
 
@@ -45,14 +45,15 @@ class AccumuloFeeder extends Actor {
       val corpus = model.applyRules
 
       // Transform DocElem-Corpus into Accumulo Datastructures.
-      self ! DocElem2Accumulo(corpus)
-      self ! Add2AnnotationIndex(corpus)
+      self ! Add2Accumulo(corpus, Artifacts)
+      self ! Add2Accumulo(corpus, Semantic)
+      self ! Add2Accumulo(corpus, Topology)
     }
 
-    case DocElem2Accumulo(corpus: Corpus) => {
+    case Add2Accumulo(corpus: Corpus, Artifacts) => {
       val mutations = corpus.artifacts.map { artifact =>
 
-        addLocalityGroup(artifact)
+        //addLocalityGroup(artifact)
 
         val sigmatics = artifact.sigmatics.toString.getBytes
         val pragmatics = artifact.pragmatics.toString.getBytes
@@ -75,7 +76,7 @@ class AccumuloFeeder extends Actor {
       log.info(s"(artifactsWriter) has written ${mutations.size} mutations.")
     }
 
-    case Add2AnnotationIndex(corpus: Corpus) => {
+    case Add2Accumulo(corpus: Corpus, Semantic) => {
       val indexFilter = Set( new URI("annotation@v1") )
       val filteredCorpus = corpus.artifacts.view.filter {
         artifact => indexFilter.contains(artifact.meta.specification)
@@ -116,35 +117,22 @@ class AccumuloFeeder extends Actor {
       log.info(s"(indexWriter) has written ${mutations.size} mutations.")
     }
 
-    case UpdateLocalityGroups => {
-      setLocalityGroups
+    case Add2Accumulo(corpus: Corpus, Topology) => {
+      val topologyArtifacts = corpus.artifacts.filter(_.meta.specification.toString.startsWith("topo")).groupBy(_.pragmatics)
+
+      val mutations = topologyArtifacts.map{ case(topologyTagId, artifacts) =>
+        val mutation = new Mutation(topologyTagId.toString)
+        artifacts.foreach{ artifact =>
+          mutation.put("contains", artifact.sigmatics.toString, "")
+        }
+        mutation
+      }
+      // send mutations to accumulo
+      topologyIndexWriter.addMutations(mutations.toIterable.asJava)
+      //indexWriter.flush
+      log.info(s"(topologyIndexWriter) has written ${mutations.size} mutations.")
     }
 
-  }
-
-  val otherThanAlphaOrDigits = """[^\p{Alpha}\p{Digit}]+""".r
-  var localityGroups = Map[String, Set[Text]]()
-
-  def addLocalityGroup(artifact: KnowledgeArtifact) = {
-    // Every document (topology) header should grouped by ColumnFamily, so Accumulo can scan fast for that topology. The can change on runtime, see Accumulo Book on page 138.
-    // Note: this will need a compactation phase to apply!
-    if (artifact.meta.specification.toString.startsWith("topo")) {
-      val docHeader = artifact.pragmatics.toString  // pragmatics is stored at column familiy in Accumulo
-      val groupName = otherThanAlphaOrDigits.replaceAllIn(docHeader.split("@tag:").head, "-")
-      val columnFamily = new Text(docHeader)
-      // Every doccument header (= col familiy) forms a locality group
-      val setWithin = localityGroups.getOrElse(groupName, Set())
-      localityGroups = localityGroups.updated(groupName, setWithin ++ Set(columnFamily))
-    }
-  }
-
-  def setLocalityGroups = {
-    if (localityGroups.nonEmpty) {
-      val localGrpJavaMap = localityGroups.map( t => (t._1, t._2.asJava) ).asJava
-      AccumuloConnectionFactory.ops.setLocalityGroups(AccumuloConnectionFactory.ARTIFACTS, localGrpJavaMap)
-      log.info(s"Adding $localityGroups to Accumulo Table's LocalityGroups.")
-      localityGroups = Map[String, Set[Text]]()
-    }
   }
 
 }

@@ -145,19 +145,14 @@ class AccumuloQueryer extends Actor {
 
   def scanTopology(uri: URI): Corpus = {
 
-    val latestTopology = getLatestTopologyTag(uri)
-
     val auths = new Authorizations()
-    val scan = AccumuloConnectionFactory.get.createScanner(AccumuloConnectionFactory.ARTIFACTS, auths)
-    //scan.setRange()
-    scan.fetchColumnFamily(new Text(latestTopology.toString))
+    val latestTopology = getLatestTopologyTag(uri)
+    val involvedIds = scanTopologyIndex(latestTopology)
 
     val ranges = new ArrayList[Range]()
-    val involvedIds = scan.asScala.map(_.getKey.getRow.toString).toSet
     for (entry <- involvedIds) yield {
       ranges.add(Range.exact(entry))
     }
-
     // add also the header of the topology
     ranges.add(Range.exact(uri.toString))
 
@@ -194,13 +189,24 @@ class AccumuloQueryer extends Actor {
   // TODO: restrict the resulting Corpus to only topology relevant infos/model (follows, rank etc.)
   def scanTopologyOnlyHierarchy(uri: URI): scala.xml.Node = {
 
-    val latestTopology = getLatestTopologyTag(uri)
-
     val auths = new Authorizations()
-    val scan = AccumuloConnectionFactory.get.createScanner(AccumuloConnectionFactory.ARTIFACTS, auths)
-    scan.fetchColumnFamily(new Text(latestTopology.toString))
+    val latestTopology = getLatestTopologyTag(uri)
+    val involvedIds = scanTopologyIndex(latestTopology)
 
-    val docelems = for (entry <- scan.asScala) yield {
+    val ranges = new ArrayList[Range]()
+    for (entry <- involvedIds) yield {
+      ranges.add(Range.exact(entry))
+    }
+    // add also the header of the topology
+    ranges.add(Range.exact(uri.toString))
+
+    val bscan = AccumuloConnectionFactory.get.createBatchScanner(AccumuloConnectionFactory.ARTIFACTS, auths, 10)
+    bscan.setRanges(ranges)
+
+    // IMPORTANT: Get only the annotation layer containing the topology infos!
+    bscan.fetchColumnFamily(new Text(latestTopology.toString))
+
+    val docelems = for (entry <- bscan.asScala) yield {
       val key = entry.getKey
       val value = new String(entry.getValue.get)
 
@@ -218,6 +224,15 @@ class AccumuloQueryer extends Actor {
       {docelems}
     </topology>
 
+  }
+
+  def scanTopologyIndex(latestTopology: URI) = {
+    val auths = new Authorizations()
+    val scan = AccumuloConnectionFactory.get.createScanner(AccumuloConnectionFactory.TOPOLOGY_INDEX, auths)
+    //scan.setRange()
+    scan.setRange(Range.exact(latestTopology.toString))
+    scan.fetchColumnFamily(new Text("contains"))
+    scan.asScala.map(_.getKey.getColumnQualifier.toString).toSet
   }
 
   // TESTS

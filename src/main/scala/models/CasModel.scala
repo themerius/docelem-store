@@ -56,7 +56,7 @@ trait CasModel extends Model with Helper {
     if (documentConcept != null) {
 
       if (documentConcept.getPrefLabel != null) {
-        label = Some(documentConcept.getPrefLabel.getValue).getOrElse(userSuppliedId)
+        label = Option(documentConcept.getPrefLabel.getValue).getOrElse(userSuppliedId)
       }
 
     }
@@ -71,7 +71,7 @@ trait CasModel extends Model with Helper {
     var source = "?"
 
     if (documentConcept != null) {
-      source = Some(documentConcept.getIdentifierSource).getOrElse("?")
+      source = Option(documentConcept.getIdentifierSource).getOrElse("?")
     }
 
     source
@@ -85,7 +85,7 @@ trait CasModel extends Model with Helper {
     var id = userSuppliedId
 
     if (documentConcept != null) {
-      id = Some(documentConcept.getIdentifier).getOrElse(userSuppliedId)
+      id = Option(documentConcept.getIdentifier).getOrElse(userSuppliedId)
     }
 
     id
@@ -134,8 +134,8 @@ trait Helper {
 
     if (docelem.isInstanceOf[Outline]) {
       val outline = docelem.asInstanceOf[Outline]
-      val title = Some(outline.getTitle).getOrElse("")
-      val rhetorical = Some(outline.getRhetorical).getOrElse("")
+      val title = Option(outline.getTitle).getOrElse("")
+      val rhetorical = Option(outline.getRhetorical).getOrElse("")
       val hash = MurmurHash3.stringHash(title + rhetorical + docelem.getCoveredText)
       val hashHex = Integer.toHexString(hash)
       s"$typeId/murmur3:${hashHex}"
@@ -400,14 +400,14 @@ trait ExtractOutlines extends CasModel with ModelTransRules {
         new URI(uri(sec)),
         new URI("_"),
         new URI(s"outline/title"),
-        Some(sec.getTitle).getOrElse("").getBytes,
+        Option(sec.getTitle).getOrElse("").getBytes,
         Meta(new URI("freetext"))
       ),
       KnowledgeArtifact(
         new URI(uri(sec)),
         new URI("_"),
         new URI(s"outline/rhetorical"),
-        Some(sec.getRhetorical).getOrElse("").getBytes,
+        Option(sec.getRhetorical).getOrElse("").getBytes,
         Meta(new URI("freetext"))
       ),
       KnowledgeArtifact(
@@ -643,7 +643,7 @@ trait ExtractHeader extends CasModel with ModelTransRules {
         new URI(sigmaticUri),
         new URI("_"),
         new URI("header/title"),
-        Some(header.getTitle).getOrElse("").getBytes,
+        Option(header.getTitle).getOrElse("").getBytes,
         Meta(new URI("freetext"))
       ),
       KnowledgeArtifact(
