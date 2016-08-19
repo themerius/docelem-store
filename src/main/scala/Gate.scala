@@ -127,7 +127,7 @@ class Gate extends Actor {
   val accounting = session.createProducer(billing)
 
   val routerAccumuloFeeder = {
-    val routees = Vector.fill(1) {
+    val routees = Vector.fill(200) {
       val r = context.actorOf(Props[AccumuloFeeder])
       context.watch(r)
       ActorRefRoutee(r)
@@ -214,6 +214,22 @@ class Gate extends Actor {
               val nneArtifacts = sentences.map(nnes).flatten.map(t => genAnnotationArtifact(t._1, t._2) ).flatten
               // assemble Corpus
               Corpus(headerArtifacts ++ sentenceArtifacts ++ outlineArtifacts ++ topologyArtifacts ++ nneArtifacts)
+            }
+            override def getDocumentId = Some(sigmaticUri)
+            override def rawTextMiningData: Option[RawData] = Some(RawData("gzip_xmi", textContent.getBytes))
+            override def rawPlaintextData: Option[RawData] = {
+              if (getDocumentViewText.nonEmpty && getDocumentViewSpec.nonEmpty) {
+                Some(RawData(getDocumentViewSpec.get, getDocumentViewText.get.getBytes))
+              } else {
+                None
+              }
+            }
+            override def rawOriginalData: Option[RawData] = {
+              if (getInitialViewText.nonEmpty && getInitialViewSpec.nonEmpty) {
+                Some(RawData(getInitialViewSpec.get, getInitialViewText.get.getBytes))
+              } else {
+                None
+              }
             }
           }
 

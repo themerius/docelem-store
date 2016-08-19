@@ -59,13 +59,14 @@ fork in run := true
 
 // Bring the system property to the forked Java VM
 javaOptions in run += s"-Dconfig.file=${System.getProperty("config.file")}"
-//javaOptions in run += "-Xmx4G"
-//javaOptions in run += "-server"
-//javaOptions in run += "-XX:NewRatio=1"
-//javaOptions in run += "-XX:+UseParallelOldGC"
-javaOptions in run += "-Dhawtdispatch.threads=4"
+javaOptions in run += "-Xmx4G"
+javaOptions in run += "-server"
+javaOptions in run += "-XX:NewRatio=1"
+javaOptions in run += "-XX:+UseG1GC"
+javaOptions in run += "-XX:+NeverTenure"
+javaOptions in run += "-Dhawtdispatch.threads=1"
 javaOptions in run += "-Dstompjms.heartbeat=0,10000"
-javaOptions in test += "-XX:+CMSClassUnloadingEnabled"
+javaOptions in run += "-XX:+CMSClassUnloadingEnabled"
 
 // Set JAR name for
 assemblyJarName in assembly := s"${name.value}.jar"

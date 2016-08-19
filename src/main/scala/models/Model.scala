@@ -17,6 +17,8 @@ trait Model {
 
 }
 
+case class RawData(dtype: String, data: Array[Byte])
+
 trait ModelTransRules extends Model {
 
   /*
@@ -24,6 +26,11 @@ trait ModelTransRules extends Model {
    * the generic document element data structure.
    */
   def applyRules: Corpus = Corpus(Nil)  // TODO: should get the Model as parameter?
+
+  def getDocumentId: Option[String] = None
+  def rawTextMiningData: Option[RawData] = None
+  def rawPlaintextData: Option[RawData] = None
+  def rawOriginalData: Option[RawData] = None
 
 }
 

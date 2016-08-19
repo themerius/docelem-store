@@ -6,6 +6,7 @@ import java.net.URI
 import org.apache.uima.jcas.cas.FSArray
 import de.fraunhofer.scai.bio.uima.core.util.UIMATypeSystemUtils
 import de.fraunhofer.scai.bio.uima.core.util.UIMAViewUtils
+import de.fraunhofer.scai.bio.uima.core.util.UIMAAnnotationUtils
 import de.fraunhofer.scai.bio.uima.core.deploy.AbstractDeployer
 import de.fraunhofer.scai.bio.uima.core.provenance.ProvenanceUtils
 import org.apache.uima.fit.util.JCasUtil
@@ -41,6 +42,13 @@ trait CasModel extends Model with Helper {
   def header = UIMAViewUtils.getHeaderFromView(jcas)
 
   def view = UIMAViewUtils.getOrCreatePreferredView(jcas, AbstractDeployer.VIEW_DOCUMENT)
+  def iview = UIMAViewUtils.getOrCreatePreferredView(jcas, AbstractDeployer.VIEW_INITIAL)
+
+  def getDocumentViewText = Option(view.getDocumentText())
+  def getInitialViewText = Option(iview.getDocumentText())
+
+  def getDocumentViewSpec = Option(UIMAAnnotationUtils.extractValueForKey(jcas, AbstractDeployer.VIEW_DOCUMENT, AbstractDeployer.MODEL_SPECIFICATION))
+  def getInitialViewSpec = Option(UIMAAnnotationUtils.extractValueForKey(jcas, AbstractDeployer.VIEW_INITIAL, AbstractDeployer.MODEL_SPECIFICATION))
 
   def layerUri = {
     ProvenanceUtils.getDocumentCollectionName(jcas)

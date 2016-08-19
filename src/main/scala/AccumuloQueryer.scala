@@ -232,12 +232,14 @@ class AccumuloQueryer extends Actor {
     //scan.setRange()
     scan.setRange(Range.exact(latestTopology.toString))
     scan.fetchColumnFamily(new Text("contains"))
-    scan.asScala.map(_.getKey.getColumnQualifier.toString).toSet
+    val involvedIds = scan.asScala.map(_.getKey.getColumnQualifier.toString).toSet
+    log.info(s"There are ${involvedIds.size} docelems in the topology.")
+    involvedIds
   }
 
   // TESTS
-  //scanSemanticIndex(Set(SearchTerm(new URI("meddra"), new URI("concept/meddra:cancer_pain")), SearchTerm(new URI("meddra"), new URI("concept/meddra:failure_kidney"))))
-  //scanSemanticIndex(Set(SearchTerm(new URI("meddra"), new URI("concept/meddra:consumption_coagulopathy")), SearchTerm(new URI("meddra"), new URI("concept/meddra:facial_flushing"))))
+  //println(scanSemanticIndex(Set(SearchTerm(new URI("meddra"), new URI("concept/meddra:cancer_pain")), SearchTerm(new URI("meddra"), new URI("concept/meddra:failure_kidney")))))
+  //println(scanSemanticIndex(Set(SearchTerm(new URI("meddra"), new URI("concept/meddra:consumption_coagulopathy")), SearchTerm(new URI("meddra"), new URI("concept/meddra:facial_flushing")))))
 
 
   /*

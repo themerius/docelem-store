@@ -22,19 +22,25 @@ object TableType extends Enumeration {
 import TableType._
 
 case class Add2Accumulo(corpus: Corpus, table: TableType)
-case class DocElem2Accumulo(corpus: Corpus)
-case class Add2AnnotationIndex(corpus: Corpus)
+case class AddRawData2Accumulo(model: ModelTransRules)
 
-class AccumuloFeeder extends Actor {
 
-  val log = Logging(context.system, this)
-
+// Compaion Object for AccumuloFeeder. The accumulo writere should be shared by all AccumuloFeeder Actors (because they are thread safe and to safe resources...)
+object AccumuloFeeder {
   val NUM_PARTITIONS = 32
 
   val configWriter = new BatchWriterConfig
   val artifactsWriter = AccumuloConnectionFactory.get.createBatchWriter(AccumuloConnectionFactory.ARTIFACTS, configWriter)
   val indexWriter = AccumuloConnectionFactory.get.createBatchWriter(AccumuloConnectionFactory.SEMANTIC_INDEX, configWriter)
   val topologyIndexWriter = AccumuloConnectionFactory.get.createBatchWriter(AccumuloConnectionFactory.TOPOLOGY_INDEX, configWriter)
+}
+
+
+class AccumuloFeeder extends Actor {
+
+  import AccumuloFeeder._
+
+  val log = Logging(context.system, this)
 
   def receive = {
 
@@ -48,12 +54,44 @@ class AccumuloFeeder extends Actor {
       self ! Add2Accumulo(corpus, Artifacts)
       self ! Add2Accumulo(corpus, Semantic)
       self ! Add2Accumulo(corpus, Topology)
+
+      // Add also the raw data (like XMI) to Accumulo
+      self ! AddRawData2Accumulo(model)
+    }
+
+    case AddRawData2Accumulo(model) => {
+
+      if (model.getDocumentId.nonEmpty) {
+
+        val mutation = new Mutation(model.getDocumentId.get)
+
+        if (model.rawTextMiningData.nonEmpty) {
+          val rawData = model.rawTextMiningData.get
+          val columnQualifier = s"textmining\0${rawData.dtype}\0${0}"
+          mutation.put("raw_data".getBytes, columnQualifier.getBytes, rawData.data)
+        }
+
+        if (model.rawPlaintextData.nonEmpty) {
+          val rawData = model.rawPlaintextData.get
+          val columnQualifier = s"plaintext\0${rawData.dtype}\0${0}"
+          mutation.put("raw_data".getBytes, columnQualifier.getBytes, rawData.data)
+        }
+
+        if (model.rawOriginalData.nonEmpty) {
+          val rawData = model.rawOriginalData.get
+          val columnQualifier = s"original\0${rawData.dtype}\0${0}"
+          mutation.put("raw_data".getBytes, columnQualifier.getBytes, rawData.data)
+        }
+
+        artifactsWriter.addMutation(mutation)
+        log.info(s"(artifactsWriter) has written a mutation with raw data.")
+
+      }
+
     }
 
     case Add2Accumulo(corpus: Corpus, Artifacts) => {
       val mutations = corpus.artifacts.map { artifact =>
-
-        //addLocalityGroup(artifact)
 
         val sigmatics = artifact.sigmatics.toString.getBytes
         val pragmatics = artifact.pragmatics.toString.getBytes
