@@ -3,6 +3,9 @@ package eu.themerius.docelemstore
 import akka.actor.{ Actor }
 import akka.event.Logging
 
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+
 import org.apache.accumulo.core.security.Authorizations
 import org.apache.accumulo.core.data.Range
 import org.apache.hadoop.io.Text
@@ -15,6 +18,7 @@ import scala.xml.PrettyPrinter
 import java.net.URI
 import java.lang.Long
 import java.util.ArrayList
+import java.util.HashSet
 import java.util.Collections
 
 import eu.themerius.docelemstore.utils.Stats.time
@@ -22,6 +26,7 @@ import eu.themerius.docelemstore.utils.Stats.time
 import QueryTarget.SingleDocElem
 import QueryTarget.Topology
 import QueryTarget.TopologyOnlyHierarchy
+import QueryTarget.SemanticSearch
 
 case class BuildQuery(builder: QueryBuilder, data: Array[Byte], reply: Reply)
 case class Scan(query: Query, reply: Reply)
@@ -72,7 +77,31 @@ class AccumuloQueryer extends Actor {
 
       val xmlTopo = scanTopologyOnlyHierarchy(uri)
       self ! PrepareReplyOnlyHierarchy(xmlTopo, reply)
-      log.info(s"(Query/TopologyOnlyHierarcy) found ${(xmlTopo \ "docelem").size} elements.")
+      log.info(s"(Query/TopologyOnlyHierarcy) the hierarcy contains ${(xmlTopo \ "docelem").size} elements.")
+    }
+
+    case Scan(Query(SemanticSearch, queryXml), reply) => {
+      val terms = (queryXml \\ "uri")
+        .map(uri => (uri \ "@layer").text -> uri.text)
+        .map(tuple => SearchTerm(new URI(tuple._1), new URI(tuple._2)))
+        .toSet
+      log.info(s"(Query/SemanticSearch) scanning for ${terms}.")
+
+      val queryId = (queryXml \\ "@uri").text
+      val findings = scanSemanticIndex(terms)
+      val lis = findings.map{ finding =>
+        val href = s"/§§:$finding"
+        <li><a href={href}>{finding}</a></li>
+      }
+      val answerHtml = <ol>{lis}</ol>
+
+      val corpus = Corpus(generateQueryDocElems(queryId, answerHtml.toString, xmlGenerator.format(queryXml)))
+      println(corpus)
+
+      context.parent ! Add2Accumulo(corpus, TableType.Artifacts, true)
+
+      //self ! PrepareReplyOnlyHierarchy(xmlTopo, reply)
+      log.info(s"(Query/SemanticSearch) found ${findings.size} elements and finding are in docelem ${queryId}.")
     }
 
     case PrepareReply(corpus, reply) => {
@@ -131,19 +160,29 @@ class AccumuloQueryer extends Actor {
     Corpus(artifacts.toSeq)
   }
 
-  def getLatestTopologyTag(uri: URI) = {
+  def getLatestTopologyTag(uri: URI) = time("getLatestTopologyTag") {
     val auths = new Authorizations()
     val scanHead = AccumuloConnectionFactory.get.createScanner(AccumuloConnectionFactory.ARTIFACTS, auths)
     scanHead.setRange(Range.exact(uri.toString))
 
-    val newestTopologyTag = scanHead.asScala.filter(_.getKey.getColumnFamily.toString.startsWith(uri.toString)).toSeq.sortBy(_.getKey.getTimestamp).reverse.head.getKey.getColumnFamily
+    val result = scanHead.asScala
+      .filter(_.getKey.getColumnFamily.toString.startsWith(uri.toString))
+      .toSeq
+      .sortBy(_.getKey.getTimestamp)
+      .reverse
+
+    val newestTopologyTag = if (result.nonEmpty) {
+      result.head.getKey.getColumnFamily.toString
+    } else {
+      ""  // => this is a single document element
+    }
 
     log.info(s"Newest topology tag is $newestTopologyTag")
 
-    new URI(newestTopologyTag.toString)
+    new URI(newestTopologyTag)
   }
 
-  def scanTopology(uri: URI): Corpus = {
+  def scanTopology(uri: URI): Corpus = time("scanTopology") {
 
     val auths = new Authorizations()
     val latestTopology = getLatestTopologyTag(uri)
@@ -187,7 +226,7 @@ class AccumuloQueryer extends Actor {
   }
 
   // TODO: restrict the resulting Corpus to only topology relevant infos/model (follows, rank etc.)
-  def scanTopologyOnlyHierarchy(uri: URI): scala.xml.Node = {
+  def scanTopologyOnlyHierarchy(uri: URI): scala.xml.Node = time("scanTopologyOnlyHierarchy") {
 
     val auths = new Authorizations()
     val latestTopology = getLatestTopologyTag(uri)
@@ -226,7 +265,7 @@ class AccumuloQueryer extends Actor {
 
   }
 
-  def scanTopologyIndex(latestTopology: URI) = {
+  def scanTopologyIndex(latestTopology: URI) = time("scanTopologyIndex") {
     val auths = new Authorizations()
     val scan = AccumuloConnectionFactory.get.createScanner(AccumuloConnectionFactory.TOPOLOGY_INDEX, auths)
     //scan.setRange()
@@ -269,6 +308,25 @@ class AccumuloQueryer extends Actor {
     for (entry <- bs.asScala.take(100)) yield {
       entry.getKey.getColumnQualifier.toString
     }
+  }
+
+  def generateQueryDocElems(queryId: String, answerHtml: String, queryXml: String) = {
+    Seq(
+      KnowledgeArtifact(
+        new URI(queryId),
+        new URI("_"),
+        new URI("query/answer"),
+        answerHtml.getBytes,
+        Meta(new URI("html"))
+      ),
+      KnowledgeArtifact(
+        new URI(queryId),
+        new URI("_"),
+        new URI("query/query"),
+        queryXml.getBytes,
+        Meta(new URI("semantic-query-dsl@v1"))
+      )
+    )
   }
 
 }

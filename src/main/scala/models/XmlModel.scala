@@ -70,3 +70,14 @@ trait XmlTopologyOnlyHierarchyQueryBuilder extends XmlModel with QueryBuilder {
   }
 
 }
+
+trait XmlSemanticSearchQueryBuilder extends XmlModel with QueryBuilder {
+
+  def buildQuery = {
+    if ( (xml \ "@name").text.contentEquals("semantic-search") )
+      Query(QueryTarget.SemanticSearch, xml)
+    else
+      Query(QueryTarget.Invalid, <query><undefined /></query>)
+  }
+
+}

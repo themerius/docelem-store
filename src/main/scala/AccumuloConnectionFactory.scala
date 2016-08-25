@@ -4,6 +4,9 @@ import org.apache.accumulo.minicluster.MiniAccumuloCluster
 import org.apache.accumulo.core.client.ZooKeeperInstance
 import org.apache.accumulo.core.client.security.tokens.PasswordToken
 import org.apache.accumulo.core.security.Authorizations
+import org.apache.hadoop.io.Text
+
+import scala.collection.JavaConverters._
 
 import java.io.File
 
@@ -47,6 +50,7 @@ object AccumuloConnectionFactory {
   if (!ops.exists(ARTIFACTS)) {
     ops.create(ARTIFACTS)
     ops.setProperty(ARTIFACTS, "table.bloom.enabled", "true")
+    //ops.setLocalityGroups(ARTIFACTS, Map("layerNull" -> Set(new Text("_")).asJava).asJava)
   }
 
   // shard_id
@@ -68,6 +72,13 @@ object AccumuloConnectionFactory {
     ops.create(TOPOLOGY_INDEX)
     ops.setProperty(TOPOLOGY_INDEX, "table.bloom.enabled", "true")
   }
+
+  // TODO: maybe change topology index??
+  // topology_tag_id
+  //   :: follows_uri
+  //   :: docelem_uri
+  //   :: rank
+  // => Queries are possible like "give me for section s all _direct_ subordinates"
 
   // GRANT permissions
   val secOps = conn.securityOperations()

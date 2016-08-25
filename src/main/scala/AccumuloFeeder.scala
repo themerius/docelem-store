@@ -21,7 +21,7 @@ object TableType extends Enumeration {
 }
 import TableType._
 
-case class Add2Accumulo(corpus: Corpus, table: TableType)
+case class Add2Accumulo(corpus: Corpus, table: TableType, flush: Boolean = false)
 case class AddRawData2Accumulo(model: ModelTransRules)
 
 
@@ -90,7 +90,7 @@ class AccumuloFeeder extends Actor {
 
     }
 
-    case Add2Accumulo(corpus: Corpus, Artifacts) => {
+    case Add2Accumulo(corpus: Corpus, Artifacts, flush) => {
       val mutations = corpus.artifacts.map { artifact =>
 
         val sigmatics = artifact.sigmatics.toString.getBytes
@@ -110,11 +110,11 @@ class AccumuloFeeder extends Actor {
 
       // send mutations to accumulo
       artifactsWriter.addMutations(mutations.toIterable.asJava)
-      //artifactsWriter.flush
+      if (flush) artifactsWriter.flush
       log.info(s"(artifactsWriter) has written ${mutations.size} mutations.")
     }
 
-    case Add2Accumulo(corpus: Corpus, Semantic) => {
+    case Add2Accumulo(corpus: Corpus, Semantic, flush) => {
       val indexFilter = Set( new URI("annotation@v1") )
       val filteredCorpus = corpus.artifacts.view.filter {
         artifact => indexFilter.contains(artifact.meta.specification)
@@ -151,11 +151,11 @@ class AccumuloFeeder extends Actor {
 
       // send mutations to accumulo
       indexWriter.addMutations(mutations.flatten.toIterable.asJava)
-      //indexWriter.flush
+      if (flush) indexWriter.flush
       log.info(s"(indexWriter) has written ${mutations.size} mutations.")
     }
 
-    case Add2Accumulo(corpus: Corpus, Topology) => {
+    case Add2Accumulo(corpus: Corpus, Topology, flush) => {
       val topologyArtifacts = corpus.artifacts.filter(_.meta.specification.toString.startsWith("topo")).groupBy(_.pragmatics)
 
       val mutations = topologyArtifacts.map{ case(topologyTagId, artifacts) =>
@@ -167,7 +167,7 @@ class AccumuloFeeder extends Actor {
       }
       // send mutations to accumulo
       topologyIndexWriter.addMutations(mutations.toIterable.asJava)
-      //indexWriter.flush
+      if (flush) topologyIndexWriter.flush
       log.info(s"(topologyIndexWriter) has written ${mutations.size} mutations.")
     }
 

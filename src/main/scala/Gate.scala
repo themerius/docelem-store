@@ -135,17 +135,17 @@ class Gate extends Actor {
     Router(RoundRobinRoutingLogic(), routees)
   }
 
-  var UNSCHOENER_HACK: akka.actor.ActorRef = null
-
-  val routerInMemory = {
-    val routees = Vector.fill(1) {
-      val r = context.actorOf(Props[InMemoryStore])
-      UNSCHOENER_HACK = r
-      context.watch(r)
-      ActorRefRoutee(r)
-    }
-    Router(RoundRobinRoutingLogic(), routees)
-  }
+  // var UNSCHOENER_HACK: akka.actor.ActorRef = null
+  //
+  // val routerInMemory = {
+  //   val routees = Vector.fill(1) {
+  //     val r = context.actorOf(Props[InMemoryStore])
+  //     UNSCHOENER_HACK = r
+  //     context.watch(r)
+  //     ActorRefRoutee(r)
+  //   }
+  //   Router(RoundRobinRoutingLogic(), routees)
+  // }
 
   val accumuloQuery = context.actorOf(Props[AccumuloQueryer])
   // val accumuloQuery = UNSCHOENER_HACK
@@ -246,9 +246,9 @@ class Gate extends Actor {
 
           log.info("(Gate) got WAL line")
 
-          routerInMemory.route(
-            Transform2DocElem(new SimpleWalLineModel, textContent.getBytes), sender()
-          )
+          // routerInMemory.route(
+          //   Transform2DocElem(new SimpleWalLineModel, textContent.getBytes), sender()
+          // )
           // routerAccumuloFeeder.route(
           //   Transform2DocElem(new SimpleWalLineModel, textContent.getBytes), sender()
           // )
@@ -276,12 +276,23 @@ class Gate extends Actor {
           val reply = Reply("", replyTo, trackingNr)
           accumuloQuery ! BuildQuery(builder, data, reply)
         }
+        case ("xml", "semantic-search") => {
+          log.info("(Gate) got html and configure for query semantic search")
+          val builder = new XmlModel with XmlSemanticSearchQueryBuilder
+          val data = textContent.getBytes("UTF-8")
+          val reply = Reply("", replyTo, trackingNr)
+          accumuloQuery ! BuildQuery(builder, data, reply)
+        }
         case (x, y) => {
           latestErrorLog = s"No rules for ($x, $y)."
           println(latestErrorLog)
         }
       }
 
+    }
+
+    case add: Add2Accumulo => {
+      routerAccumuloFeeder.route(add, sender())
     }
 
     case Reply(content, to, trackingNr) => time (s"Gate:Reply($to)") {

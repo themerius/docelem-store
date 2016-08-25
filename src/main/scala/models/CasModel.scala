@@ -639,10 +639,16 @@ trait ExtractHeader extends CasModel with ModelTransRules {
 
   def genContentArtifacts(header: Header) = {
 
-    val authors = header.getAuthors.toArray
-      .map(_.asInstanceOf[Person])
-      .map(p => s"${p.getForename} ${p.getSurname}")
-      .mkString(", ")
+    val authors: Seq[String] =
+      if (header.getAuthors != null) {
+        header.getAuthors.toArray
+        .map(_.asInstanceOf[Person])
+        .map{ person =>
+          s"${Option(person.getForename).getOrElse("")} ${Option(person.getSurname).getOrElse("")}".trim
+        }
+      } else {
+        Nil
+      }
 
     val pubDate = String.format("%tF", header.getPublicationDate.getDate)
 
@@ -658,7 +664,7 @@ trait ExtractHeader extends CasModel with ModelTransRules {
         new URI(sigmaticUri),
         new URI("_"),
         new URI("header/authors"),
-        authors.getBytes,
+        authors.mkString(", ").getBytes,
         Meta(new URI("freetext"))
       ),
       KnowledgeArtifact(
