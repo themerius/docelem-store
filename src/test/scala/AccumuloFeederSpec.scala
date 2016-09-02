@@ -58,7 +58,7 @@ class AccumuloFeederSpec(_system: ActorSystem)
       Meta(new URI("freetext"), 1)
     ) +: artifacts
 
-    af ! DocElem2Accumulo(Corpus(artifacts))
+    //af ! DocElem2Accumulo(Corpus(artifacts))
 
   }
 
@@ -97,7 +97,7 @@ class AccumuloFeederSpec(_system: ActorSystem)
       Meta(new URI("bel@v1.0"), 3)
     ) +: artifacts
 
-    af ! DocElem2Accumulo(Corpus(artifacts))
+    //af ! DocElem2Accumulo(Corpus(artifacts))
 
   }
 
@@ -141,7 +141,7 @@ class AccumuloFeederSpec(_system: ActorSystem)
       Meta(new URI("annotation@v1"), 300)
     ) +: artifacts
 
-    af ! DocElem2Accumulo(Corpus(artifacts))
+    //af ! DocElem2Accumulo(Corpus(artifacts))
 
   }
 
@@ -184,7 +184,7 @@ class AccumuloFeederSpec(_system: ActorSystem)
     //   Meta(new URI("freetext"))
     // ) +: artifacts
 
-    af ! DocElem2Accumulo(Corpus(artifacts))
+    //af ! DocElem2Accumulo(Corpus(artifacts))
 
   }
 

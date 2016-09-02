@@ -44,83 +44,46 @@ class Gate extends Actor {
   // Connect to the broker
   val factory = new StompJmsConnectionFactory
   factory.setBrokerURI(brokerUri)
+
+  val elistener = new ExceptionListener {
+    override def onException(jmse: JMSException) {
+      log.error(s"Connection Error: $jmse")
+      // TODO: cleanup connection, retry connection and don't die... :)
+      log.warning("Because I'm depressed of the connection error, I'll doing suicide!")
+      System.exit(1)
+    }
+  }
+
   val connection = factory.createConnection(brokerUsr, brokerPwd)
-  connection.setClientID(s"/topic/${java.util.UUID.randomUUID.toString}")
+  connection.setExceptionListener(elistener);
+  connection.setClientID(s"jms.topic.${java.util.UUID.randomUUID.toString}")
   connection.start
+
   val session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE)
 
-  // Raw STOMP connection
-  val stomp = new Stomp(brokerUri)
-  stomp.setLogin(brokerUsr)
-  stomp.setPasscode(brokerPwd)
-  stomp.setClientId(s"/topic/${java.util.UUID.randomUUID.toString}")
+  val queue = new StompJmsDestination(brokerQueue)
+  val consumer = session.createConsumer(queue)
 
-  var callbackConnection: CallbackConnection = null
+  val listener = new MessageListener {
 
-  def setupRawStompCallbacks(): Any = {
+    override def onMessage(message: Message) {
 
-    val receiveCallback = new Callback[StompFrame]() {
-      override def onFailure(value: Throwable) = {
-        println(s"Receive Failed (on RECEIVE) ${value}")
-        if (callbackConnection != null) {
-          callbackConnection.close(null)
-          println("Trying to recover the connections!")
-          setupRawStompCallbacks()  // reconnect again
-        }
+      val headers = for(prop <- message.getPropertyNames.asScala) yield {
+        val strProp = prop.asInstanceOf[String]
+        strProp -> message.getStringProperty(strProp)
       }
 
-      override def onSuccess(frame: StompFrame) = {
-        if (frame.action == MESSAGE) {
-          // generate a list of properties and transform it into a standard map
-          val headerMap = frame.headerList.asScala.map( entry =>
-            entry.getKey.toString -> entry.getValue.toString
-          ).toMap
-          // send it to the gate actor to do further processing
-          self ! Consume(headerMap, frame.contentAsString)
-        }
+      val headerMap = headers.toMap.updated("reply-to", message.getJMSReplyTo.toString)
+
+      if (message.isInstanceOf[TextMessage]) {
+        self ! Consume(headerMap, message.asInstanceOf[TextMessage].getText)
       }
+
     }
-
-    stomp.connectCallback(new Callback[CallbackConnection] {
-
-      override def onFailure(value: Throwable) = {
-        println(s"Connection Failed ${value}")
-      }
-
-      override def onSuccess(connection: CallbackConnection) = {
-        println(s"Raw STOMP connection opened.")
-
-        // make it accessable also for e.g. the receiveCallback
-        callbackConnection = connection
-
-        // register the callback which is triggered when a messages arrives
-        connection.receive(receiveCallback)
-
-        // setup on which queue should be listened
-        connection.resume
-
-        val frame = new StompFrame(SUBSCRIBE)
-        frame.addHeader(DESTINATION, StompFrame.encodeHeader(brokerQueue))
-        frame.addHeader(ID, connection.nextId)
-        //frame.addHeader(CLIENT_ID, StompFrame.encodeHeader(s"/topic/id.${java.util.UUID.randomUUID.toString}"))
-
-        connection.request(frame, new Callback[StompFrame]() {
-          override def onFailure(value: Throwable) = {
-            println(s"Receive Failed (on SUBSCRIBE) ${value}")
-            connection.close(null)
-          }
-
-          override def onSuccess(value: StompFrame) = {
-            println(s"Raw STOMP connection listens to ${brokerQueue}.")
-          }
-        })
-      }
-
-    })
 
   }
 
-  setupRawStompCallbacks()
+  consumer.setMessageListener(listener)
 
 
   val billing = new StompJmsDestination(brokerBilling)

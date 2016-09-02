@@ -65,7 +65,7 @@ javaOptions in run += "-XX:NewRatio=1"
 javaOptions in run += "-XX:+UseG1GC"
 javaOptions in run += "-XX:+NeverTenure"
 javaOptions in run += "-Dhawtdispatch.threads=1"
-javaOptions in run += "-Dstompjms.heartbeat=0,10000"
+javaOptions in run += "-Dstompjms.heartbeat=30000,60000"
 javaOptions in run += "-XX:+CMSClassUnloadingEnabled"
 
 // Set JAR name for

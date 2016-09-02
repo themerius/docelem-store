@@ -117,7 +117,7 @@ class XCasModelSpec extends FlatSpec with Matchers {
       override def applyRules = {
         val annots = sentences.map(nnes).flatten
           .map(t => genAnnotationArtifact(t._1, t._2))
-        Corpus(annots)
+        Corpus(Nil)
       }
     }
 

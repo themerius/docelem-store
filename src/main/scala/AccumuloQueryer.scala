@@ -197,6 +197,8 @@ class AccumuloQueryer extends Actor {
 
     val bscan = AccumuloConnectionFactory.get.createBatchScanner(AccumuloConnectionFactory.ARTIFACTS, auths, 10)
     bscan.setRanges(ranges)
+    // bscan.fetchColumnFamily(new Text("_"))
+    // bscan.fetchColumnFamily(new Text("mesh_disease_ns_mapped"))
 
     val bartifacts =
       for (entry <- bscan.asScala) yield {
