@@ -73,7 +73,13 @@ class Gate extends Actor {
         strProp -> message.getStringProperty(strProp)
       }
 
-      val headerMap = headers.toMap.updated("reply-to", message.getJMSReplyTo.toString)
+      val replyTo = if (message.getJMSReplyTo != null) {
+        message.getJMSReplyTo.toString
+      } else {
+        ""
+      }
+
+      val headerMap = headers.toMap.updated("reply-to", replyTo)
 
       if (message.isInstanceOf[TextMessage]) {
         self ! Consume(headerMap, message.asInstanceOf[TextMessage].getText)
