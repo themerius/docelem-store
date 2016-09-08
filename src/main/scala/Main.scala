@@ -15,9 +15,20 @@ import com.typesafe.config.ConfigFactory
 import eu.themerius.docelemstore.utils.Stats.time
 
 object DocElemStore extends App {
+
   // Workaround if no external config file is set
   if (System.getProperty("config.file") == "null") {
     System.clearProperty("config.file")
+  }
+
+  if (args.size == 3) {
+    if(args(0).contains("scan-xmi")) {
+      AccumuloXmiScanner.setDestination(args(2))
+      AccumuloXmiScanner.scanXMI(args(1))
+    } else {
+      println("wrong arguments. Try something like 'scan-xmi header/PMID jms.queue.XCAS2Lucene'")
+      System.exit(1)
+    }
   }
 
   // Load config

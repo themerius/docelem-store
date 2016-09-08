@@ -39,7 +39,7 @@ trait CasModel extends Model with Helper {
   var cas: CAS = _
 
   def jcas = cas.getJCas()
-  def header = UIMAViewUtils.getHeaderFromView(jcas)
+  def header = JCasUtil.selectSingle(jcas, classOf[Header])
 
   def view = UIMAViewUtils.getOrCreatePreferredView(jcas, AbstractDeployer.VIEW_DOCUMENT)
   def iview = UIMAViewUtils.getOrCreatePreferredView(jcas, AbstractDeployer.VIEW_INITIAL)

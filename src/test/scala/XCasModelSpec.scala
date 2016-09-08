@@ -7,6 +7,7 @@ import java.nio.file.{ Files, Paths }
 import java.net.URI
 
 
+@Ignore
 class XCasModelSpec extends FlatSpec with Matchers {
 
   def getSampleGzippedXCas: Array[Byte] = {
