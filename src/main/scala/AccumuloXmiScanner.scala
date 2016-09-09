@@ -104,8 +104,10 @@ object AccumuloXmiScanner {
 
     }
 
-    Await.ready(latestFuture, 1.minutes)
     println(s"Scanned from $prefix the LAST (=$countVar^th) XMI.")
+    Await.ready(latestFuture, 5.minutes)
+    println("Awaited last message to be SEND.")
+    println("Success!")
     System.exit(0)
 
   }
