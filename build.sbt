@@ -32,6 +32,11 @@ libraryDependencies ++= Seq(
   "javax.jms" % "jms" % "1.1"
 )
 
+// libraryDependencies += "commons-codec" % "commons-codec" % "1.10"
+// libraryDependencies += "edu.stanford.nlp" % "stanford-corenlp" % "3.6.0"
+// libraryDependencies += "edu.stanford.nlp" % "stanford-corenlp" % "3.6.0" classifier "models-english"
+// libraryDependencies += "com.google.protobuf" % "protobuf-java" % "3.0.2"
+
 // Communication with broker
 libraryDependencies += "de.fraunhofer.scai.bio.msa" % "MicroServiceCore" % "2.3-SNAPSHOT"
 

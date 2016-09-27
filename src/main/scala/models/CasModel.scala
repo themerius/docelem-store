@@ -29,6 +29,7 @@ import de.fraunhofer.scai.bio.extraction.types.text.documentelement.meta.Abstrac
 import de.fraunhofer.scai.bio.extraction.types.meta.Person
 import org.apache.uima.cas.CAS
 
+import org.apache.commons.codec.language.Soundex
 import scala.util.hashing.MurmurHash3
 import scala.collection.JavaConverters._
 
@@ -39,7 +40,11 @@ trait CasModel extends Model with Helper {
   var cas: CAS = _
 
   def jcas = cas.getJCas()
-  def header = JCasUtil.selectSingle(jcas, classOf[Header])
+  def header = try {
+    JCasUtil.selectSingle(jcas, classOf[Header])
+  } catch {
+    case ie: IllegalArgumentException => new Header(jcas)
+  }
 
   def view = UIMAViewUtils.getOrCreatePreferredView(jcas, AbstractDeployer.VIEW_DOCUMENT)
   def iview = UIMAViewUtils.getOrCreatePreferredView(jcas, AbstractDeployer.VIEW_INITIAL)
@@ -129,6 +134,24 @@ class GzippedXCasModel extends CasModel {
 
 trait Helper {
 
+  val soundex = new Soundex
+
+  def soundexEncode(str: String) = {
+    try {
+      soundex.encode(str)
+    } catch {
+      case e: Exception => ""
+    }
+  }
+
+  def calculateCombinedHash(strs: Seq[String]) = {
+    val combinedHash = strs.foldLeft(0) { (total, item) =>
+      // use hash from previous item as seed
+      MurmurHash3.stringHash(item, total)
+    }
+    Integer.toHexString(combinedHash)
+  }
+
   def camelToUnderscores(name: String) = "[A-Z\\d]".r.replaceAllIn(name, {m =>
     if(m.end(0) == 1){
       m.group(0).toLowerCase()
@@ -147,6 +170,8 @@ trait Helper {
       val hash = MurmurHash3.stringHash(title + rhetorical + docelem.getCoveredText)
       val hashHex = Integer.toHexString(hash)
       s"$typeId/murmur3:${hashHex}"
+    } else if (docelem.isInstanceOf[Sentence]) {
+      uriSentence(docelem.asInstanceOf[Sentence])
     } else {
       val hash = MurmurHash3.stringHash(docelem.getCoveredText)
       val hashHex = Integer.toHexString(hash)
@@ -167,10 +192,21 @@ trait Helper {
     s"list/murmur3:${hashHex}"
   }
 
+  def uriSentence(sen: Sentence) = {
+    // Note: this is also used by uri(CoreAnnotation) ...
+    val se = sen.getCoveredText.trim
+      .split("""\s+""")
+      .map(soundexEncode)
+      .filterNot(_.isEmpty)
+    if (se.isEmpty) {
+      ""
+    } else {
+      s"sentence/${se.head}:${calculateCombinedHash(se)}"
+    }
+  }
+
   def uri(sen: Sentence) = {
-    val hash = MurmurHash3.stringHash(sen.getCoveredText)
-    val hashHex = Integer.toHexString(hash)
-    s"sentence/murmur3:${hashHex}"
+    uriSentence(sen)
   }
 
   def dictId(nne: NormalizedNamedEntity) =
@@ -284,7 +320,7 @@ trait ExtractGenericHierarchy extends CasModel with ModelTransRules with Extract
 
   def headerDocElem = {
     val de = new Matter(jcas)  // as alternative to header, because header is in our typesystem no document element!
-    de.setBegin(0)
+    de.setBegin(-1000)
     de
   }
 
@@ -295,8 +331,8 @@ trait ExtractGenericHierarchy extends CasModel with ModelTransRules with Extract
     head
   }
   // Prepare the list of document elements
-  def items = topoHead +: (docelems.map(new TypesystemTopologyItem(_)) ++ sentences.map(new TypesystemTopologyItem(_)))
-  def hierarcyUtils = new HierarchyUtils(items)
+  def topologyItems = topoHead +: (docelems.map(new TypesystemTopologyItem(_)) ++ sentences.map(new TypesystemTopologyItem(_)))
+  def hierarcyUtils = new HierarchyUtils(topologyItems)
   // Compute the hierarchy
   def hierarchizedDocelems = hierarcyUtils.assignHierarchy
 
@@ -536,14 +572,24 @@ trait ExtractSentences extends CasModel with ModelTransRules {
   }
 
   def genContentArtifact(sent: Sentence) = {
-    val text = sent.getCoveredText.getBytes
-    KnowledgeArtifact(
-      new URI(uri(sent)),
-      new URI("_"),
-      new URI("sentence/sentence"),
-      text,
-      Meta(new URI("freetext"), MurmurHash3.bytesHash(text))
-    )
+    val text = sent.getCoveredText.trim.replaceAll("""\s+""", " ").getBytes
+    if (uri(sent).isEmpty) {
+      KnowledgeArtifact(
+        new URI(""),
+        new URI(""),
+        new URI(""),
+        "".getBytes,
+        Meta(new URI(""))
+      )
+    } else {
+      KnowledgeArtifact(
+        new URI(uri(sent)),
+        new URI("_"),
+        new URI("sentence/sentence"),
+        text,
+        Meta(new URI("freetext"))
+      )
+    }
   }
 
 }
@@ -650,7 +696,10 @@ trait ExtractHeader extends CasModel with ModelTransRules {
         Nil
       }
 
-    val pubDate = String.format("%tF", header.getPublicationDate.getDate)
+      var pubDate = ""
+      if (header.getPublicationDate != null) {
+        pubDate = String.format("%tF", header.getPublicationDate.getDate)
+      }
 
     Seq(
       KnowledgeArtifact(

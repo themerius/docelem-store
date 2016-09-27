@@ -69,7 +69,6 @@ object DocElemStore extends App {
       }
     }
 
-
   }
 
 }

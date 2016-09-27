@@ -80,11 +80,11 @@ class HierarchyUtils[DocElem](items: Seq[TopologyItem[DocElem]]) {
 
   def assignHierarchy: Seq[TopologyItem[DocElem]] = {
 
-    checkedHead +: preparedItems.sliding(2).map{ docElemPair =>
+    (checkedHead +: preparedItems.sliding(2).toList.map{ docElemPair =>
       val previous = docElemPair(0)
       val current = docElemPair(1)
       assginFollower(current, previous)
-    }.toSeq
+    }).toSeq
 
   }
 

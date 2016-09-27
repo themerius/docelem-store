@@ -11,6 +11,8 @@ import akka.event.Logging
 import org.fusesource.stomp.jms._
 import javax.jms._
 
+import java.net.URI
+
 import org.fusesource.stomp.client.Constants._
 import org.fusesource.stomp.codec.StompFrame
 import org.fusesource.stomp.client.Stomp
@@ -175,10 +177,10 @@ class Gate extends Actor {
             override def applyRules = {
               // header, setences, ...
               val headerArtifacts = genContentArtifacts(header)
-              val sentenceArtifacts = sentences.map(genContentArtifact)
+              val sentenceArtifacts = sentences.map(genContentArtifact).filterNot(ar => ar.sigmatics == new URI(""))
               val outlineArtifacts = outlines.map(genContentArtifacts).flatten
               // hierarcy
-              val topologyArtifacts = addTopologyTag(hierarchizedDocelems.map(genTopologyArtifact))
+              val topologyArtifacts = addTopologyTag(hierarchizedDocelems.map(genTopologyArtifact)).filterNot(ar => ar.sigmatics == new URI(""))
               // NNEs
               val nneArtifacts = sentences.map(nnes).flatten.map(t => genAnnotationArtifact(t._1, t._2) ).flatten
               // assemble Corpus
