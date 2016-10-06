@@ -40,8 +40,8 @@ object DocElemStore extends App {
   // Start one Gate actor (you can start 1..n)
   val number = conf.getInt("docelem-store.gate.number") + 1
   for (i <- 1 until number) {
-    val gate = system.actorOf(Props[Gate], s"gate-$i")
-    //fillExamples(gate)
+    val gate = system.actorOf(Props[Gate].withMailbox("akka.actor.blocking-mailbox"), s"gate-$i")
+    fillExamples(gate)
     println(s"Starting gate-$i")
   }
 

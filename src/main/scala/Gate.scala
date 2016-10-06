@@ -23,6 +23,13 @@ import org.fusesource.stomp.client.CallbackConnection
 
 import scala.collection.JavaConverters._
 
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
+import scala.concurrent.Await
+import scala.concurrent.Future
+import scala.concurrent.Promise
+import scala.concurrent.TimeoutException
+
 import com.typesafe.config.ConfigFactory
 
 case class Consume(header: Map[String, String], message: String)
@@ -91,7 +98,33 @@ class Gate extends Actor {
 
   }
 
-  consumer.setMessageListener(listener)
+  // consumer.setMessageListener(listener)
+
+  // Blocking alternative to message listener.
+  // This is a easy way to handle back pressure.
+  Future {
+    while(true) {
+      val message = consumer.receive  // block until getting a message
+      if (message != null) {  // unwrap message and route it
+        val headers = for(prop <- message.getPropertyNames.asScala) yield {
+          val strProp = prop.asInstanceOf[String]
+          strProp -> message.getStringProperty(strProp)
+        }
+
+        val replyTo = if (message.getJMSReplyTo != null) {
+          message.getJMSReplyTo.toString
+        } else {
+          ""
+        }
+
+        val headerMap = headers.toMap.updated("reply-to", replyTo)
+
+        if (message.isInstanceOf[TextMessage]) {
+          self ! Consume(headerMap, message.asInstanceOf[TextMessage].getText)
+        }
+      }
+    }
+  }
 
 
   val billing = new StompJmsDestination(brokerBilling)
@@ -99,13 +132,14 @@ class Gate extends Actor {
 
   val routerAccumuloFeeder = {
     val routees = Vector.fill(200) {
-      val r = context.actorOf(Props[AccumuloFeeder])
+      val r = context.actorOf(Props[AccumuloFeeder].withMailbox("akka.actor.blocking-mailbox"))
       context.watch(r)
       ActorRefRoutee(r)
     }
     Router(RoundRobinRoutingLogic(), routees)
   }
 
+  val inMemory = context.actorOf(Props[InMemoryStore])
   // var UNSCHOENER_HACK: akka.actor.ActorRef = null
   //
   // val routerInMemory = {
@@ -126,9 +160,13 @@ class Gate extends Actor {
     case Consume(header: Map[String, String], textContent: String) => {
       // unwrap message and route it
       val event = header.getOrElse("event", "")
-      val contentType = header.getOrElse("content-type", "")
+      var contentType = header.getOrElse("content-type", "")
       val replyTo = header.getOrElse("reply-to", "")
       var trackingNr = header.getOrElse("tracking-nr", "")
+
+      if (contentType == "gzip_xml") {
+        contentType = "gzip-xml"
+      }
 
       (contentType, event) match {
 
@@ -217,6 +255,8 @@ class Gate extends Actor {
 
           log.info("(Gate) got WAL line")
 
+          inMemory ! Transform2DocElem(new SimpleWalLineModel, textContent.getBytes)
+
           // routerInMemory.route(
           //   Transform2DocElem(new SimpleWalLineModel, textContent.getBytes), sender()
           // )
@@ -232,6 +272,7 @@ class Gate extends Actor {
           val data = textContent.getBytes("UTF-8")
           val reply = Reply("", replyTo, trackingNr)
           accumuloQuery ! BuildQuery(builder, data, reply)
+          inMemory ! BuildQuery(builder, data, reply)
         }
         case ("xml", "query-topology") => {
           log.info("(Gate) got html and configure for query topology")
@@ -239,6 +280,7 @@ class Gate extends Actor {
           val data = textContent.getBytes("UTF-8")
           val reply = Reply("", replyTo, trackingNr)
           accumuloQuery ! BuildQuery(builder, data, reply)
+          inMemory ! BuildQuery(builder, data, reply)
         }
         case ("xml", "query-topology-only-hierarchy") => {
           log.info("(Gate) got html and configure for query topology only hierarchy")
@@ -246,6 +288,7 @@ class Gate extends Actor {
           val data = textContent.getBytes("UTF-8")
           val reply = Reply("", replyTo, trackingNr)
           accumuloQuery ! BuildQuery(builder, data, reply)
+          inMemory ! BuildQuery(builder, data, reply)
         }
         case ("xml", "semantic-search") => {
           log.info("(Gate) got html and configure for query semantic search")
@@ -253,6 +296,7 @@ class Gate extends Actor {
           val data = textContent.getBytes("UTF-8")
           val reply = Reply("", replyTo, trackingNr)
           accumuloQuery ! BuildQuery(builder, data, reply)
+          inMemory ! BuildQuery(builder, data, reply)
         }
         case (x, y) => {
           latestErrorLog = s"No rules for ($x, $y)."

@@ -46,7 +46,7 @@ object AccumuloConnectionFactory {
   //   :: layer_uri
   //   :: attribute_uri \0 model_spec_uri \0 fingerprint
   //   :: domain_model
-  val ARTIFACTS = "knowledge_artifacts_dev"
+  val ARTIFACTS = conf.getString("docelem-store.storage.accumulo.tables.artifacts")
   if (!ops.exists(ARTIFACTS)) {
     ops.create(ARTIFACTS)
     ops.setProperty(ARTIFACTS, "table.bloom.enabled", "true")
@@ -57,7 +57,7 @@ object AccumuloConnectionFactory {
   //   :: layer_uri ! attribute_uri
   //   :: docelem_uri
   //   :: nil
-  val SEMANTIC_INDEX = "semantic_index_dev"
+  val SEMANTIC_INDEX = conf.getString("docelem-store.storage.accumulo.tables.doc-based-partitioned-index")
   if (!ops.exists(SEMANTIC_INDEX)) {
     ops.create(SEMANTIC_INDEX)
     ops.setProperty(SEMANTIC_INDEX, "table.bloom.enabled", "true")
@@ -67,7 +67,7 @@ object AccumuloConnectionFactory {
   //   :: contains|created_by|curated|...
   //   :: docelem_uri
   //   :: nil
-  val TOPOLOGY_INDEX = "topology_index_dev"
+  val TOPOLOGY_INDEX = conf.getString("docelem-store.storage.accumulo.tables.topology-index")
   if (!ops.exists(TOPOLOGY_INDEX)) {
     ops.create(TOPOLOGY_INDEX)
     ops.setProperty(TOPOLOGY_INDEX, "table.bloom.enabled", "true")

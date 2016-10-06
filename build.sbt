@@ -22,9 +22,9 @@ password=
 updateOptions := updateOptions.value.withCachedResolution(true)
 
 libraryDependencies ++= Seq(
-  "com.typesafe.akka" %% "akka-actor" % "2.4.2",
-  "com.typesafe.akka" %% "akka-testkit" % "2.4.2",
-  "com.typesafe.akka" %% "akka-remote" % "2.4.2",
+  "com.typesafe.akka" %% "akka-actor" % "2.4.10",
+  "com.typesafe.akka" %% "akka-testkit" % "2.4.10",
+  "com.typesafe.akka" %% "akka-remote" % "2.4.10",
   "org.scala-lang.modules" %% "scala-xml" % "1.0.3",
   "org.apache.accumulo" % "accumulo-core" % "1.7.1",
   "org.apache.accumulo" % "accumulo-minicluster" % "1.7.1",
@@ -64,7 +64,7 @@ fork in run := true
 
 // Bring the system property to the forked Java VM
 javaOptions in run += s"-Dconfig.file=${System.getProperty("config.file")}"
-javaOptions in run += "-Xmx4G"
+javaOptions in run += "-Xmx8G"
 javaOptions in run += "-server"
 javaOptions in run += "-XX:NewRatio=1"
 javaOptions in run += "-XX:+UseG1GC"

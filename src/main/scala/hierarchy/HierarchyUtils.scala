@@ -80,6 +80,11 @@ class HierarchyUtils[DocElem](items: Seq[TopologyItem[DocElem]]) {
 
   def assignHierarchy: Seq[TopologyItem[DocElem]] = {
 
+    if (preparedItems.size == 1) {
+      println("We have a empty document?")
+      return Seq(checkedHead)
+    }
+
     (checkedHead +: preparedItems.sliding(2).toList.map{ docElemPair =>
       val previous = docElemPair(0)
       val current = docElemPair(1)

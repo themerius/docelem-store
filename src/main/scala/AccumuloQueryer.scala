@@ -56,8 +56,10 @@ class AccumuloQueryer extends Actor {
       log.info(s"(Query/SingleDocElem) scanning for ${uri}.")
 
       val corpus = scanSingleDocelem(uri)
-      self ! PrepareReply(corpus, reply)
-      log.info(s"(Query/SingleDocElem) found ${corpus.artifacts.size} artifacts.")
+      if (corpus.artifacts.size > 0) {
+        self ! PrepareReply(corpus, reply)
+        log.info(s"(Query/SingleDocElem) found ${corpus.artifacts.size} artifacts.")
+      }
     }
 
     case Scan(Query(Topology, queryXml), reply) => {
@@ -66,8 +68,10 @@ class AccumuloQueryer extends Actor {
       log.info(s"(Query/Topology) scanning for ${uri}.")
 
       val corpus = scanTopology(uri)
-      self ! PrepareReply(corpus, reply)
-      log.info(s"(Query/Topology) found ${corpus.artifacts.size} artifacts.")
+      if (corpus.artifacts.size > 0) {
+        self ! PrepareReply(corpus, reply)
+        log.info(s"(Query/Topology) found ${corpus.artifacts.size} artifacts.")
+      }
     }
 
     case Scan(Query(TopologyOnlyHierarchy, queryXml), reply) => {
@@ -76,8 +80,10 @@ class AccumuloQueryer extends Actor {
       log.info(s"(Query/TopologyOnlyHierarchy) scanning for ${uri}.")
 
       val xmlTopo = scanTopologyOnlyHierarchy(uri)
-      self ! PrepareReplyOnlyHierarchy(xmlTopo, reply)
-      log.info(s"(Query/TopologyOnlyHierarcy) the hierarcy contains ${(xmlTopo \ "docelem").size} elements.")
+      if ((xmlTopo \ "docelem").size > 0) {
+        self ! PrepareReplyOnlyHierarchy(xmlTopo, reply)
+        log.info(s"(Query/TopologyOnlyHierarcy) the hierarcy contains ${(xmlTopo \ "docelem").size} elements.")
+      }
     }
 
     case Scan(Query(SemanticSearch, queryXml), reply) => {
@@ -118,7 +124,7 @@ class AccumuloQueryer extends Actor {
       //      <layer>
       //        <attr><attr>...
       val xmlCorpus =
-        <corpus by={version}>{layers.map(de => <docelem uri={de._1.toString}>{de._2.map(la => <layer uri={la._1.toString}>{la._2.map(ar => <attr uri={ar.semantics.toString} spec={ar.meta.specification.toString}>{scala.xml.PCData(new String(ar.model, "UTF-8"))}</attr>)}</layer>)}</docelem>)}</corpus>
+        <corpus by={version}>{layers.map(de => <docelem uri={de._1.toString}>{de._2.map(la => <layer uri={la._1.toString}>{la._2.map(ar => <attr uri={ar.semantics.toString} spec={ar.meta.specification.toString} layer={la._1.toString}>{scala.xml.PCData(new String(ar.model, "UTF-8"))}</attr>)}</layer>)}</docelem>)}</corpus>
 
       context.parent ! Reply(xmlGenerator.format(xmlCorpus), reply.to, reply.trackingNr)
       log.info(s"(Reply) send to ${reply.to}.")

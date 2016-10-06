@@ -331,7 +331,13 @@ trait ExtractGenericHierarchy extends CasModel with ModelTransRules with Extract
     head
   }
   // Prepare the list of document elements
-  def topologyItems = topoHead +: (docelems.map(new TypesystemTopologyItem(_)) ++ sentences.map(new TypesystemTopologyItem(_)))
+  def topologyItems = {
+    if (docelems.size == 0) {
+      println("No document elements found?")
+      println(sigmaticUri)
+    }
+    topoHead +: (docelems.map(new TypesystemTopologyItem(_)) ++ sentences.map(new TypesystemTopologyItem(_)))
+  }
   def hierarcyUtils = new HierarchyUtils(topologyItems)
   // Compute the hierarchy
   def hierarchizedDocelems = hierarcyUtils.assignHierarchy
