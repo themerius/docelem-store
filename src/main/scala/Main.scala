@@ -9,6 +9,7 @@ import akka.util.Timeout
 import scala.concurrent.Await
 
 import java.nio.file.{ Files, Paths }
+import scala.collection.JavaConverters._
 
 import com.typesafe.config.ConfigFactory
 
@@ -48,26 +49,38 @@ object DocElemStore extends App {
   def fillExamples(gate: ActorRef) = {
 
     val uri = getClass.getResource("/example.dlogs").toURI
-    val folder = Paths.get(uri).toFile
-    if (folder.isDirectory) {
-      val files = folder.listFiles
-      for (file <- files) {
+    val path = if (uri.getScheme().equals("jar")) {
+      val fs = initFileSystem(uri)
+      fs.getPath("/example.dlogs")
+    } else {
+      Paths.get(uri)
+    }
 
-        val reader = Files.newBufferedReader(file.toPath)
-
+    val walk = Files.walk(path, 1)
+    val it = walk.iterator
+    while (it.hasNext) {
+      val filePath = it.next
+      if (filePath.toString.endsWith("dlog")) {
+        val reader = Files.newBufferedReader(filePath)
         val header = Map(
           "content-type" -> "wal-line",
           "event" -> ""
         )
-
-        var line = reader.readLine()
+        var line = reader.readLine
         while (line != null) {
           gate ! Consume(header, line)
-          line = reader.readLine()
+          line = reader.readLine
         }
-
       }
     }
+
+  }
+
+  def initFileSystem(uri: java.net.URI) = {
+
+    val env = new java.util.HashMap[String, String]();
+    env.put("create", "true");
+    java.nio.file.FileSystems.newFileSystem(uri, env);
 
   }
 
