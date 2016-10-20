@@ -1,0 +1,2 @@
+0	query/example:1	_	query/query	semantic-query-dsl@v1	<query uri="query/example:1">\n  <and>\n    <uri>concept/MESHD:Neurogenic_Inflammation</uri>\n    <uri>concept/NDD:Astrocyte</uri>\n  </and>\n</query>
+0	query/example:1	_	query/answer	html	<ol></li><li><a href="#">header/PMID:26111426</a></li><li><a href="#">header/PMID:26878478</a></li><li><a href="#">header/PMID:26599119</a></li><li><a href="#">header/PMID:26492479</a></li><li><a href="#">...</a></li></ol>

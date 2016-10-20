@@ -131,7 +131,7 @@ class Gate extends Actor {
   val accounting = session.createProducer(billing)
 
   val routerAccumuloFeeder = {
-    val routees = Vector.fill(200) {
+    val routees = Vector.fill(100) {
       val r = context.actorOf(Props[AccumuloFeeder].withMailbox("akka.actor.blocking-mailbox"))
       context.watch(r)
       ActorRefRoutee(r)
