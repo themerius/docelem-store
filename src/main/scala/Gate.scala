@@ -163,10 +163,13 @@ class Gate extends Actor {
       val contentType = header.getOrElse("content-type", "")
       val replyTo = header.getOrElse("reply-to", "")
       val trackingNr = header.getOrElse("tracking-nr", "")
+      var documentId = header.getOrElse("document-id", "")
 
-      // TODO: aww that's a hack...
-      if (trackingNr.startsWith("header/")) {
+      if (documentId.size > 1) {
         event = "onlyStoreXmi"
+        if (!documentId.startsWith("header/")) {
+          documentId = "header/" + documentId
+        }
       }
 
       (contentType, event) match {
@@ -215,7 +218,7 @@ class Gate extends Actor {
           val model = new Model with ModelTransRules {
             def deserialize(m: Array[Byte]) = this
             def serialize: Array[Byte] = Array[Byte]()
-            override def getDocumentId = Some(trackingNr)
+            override def getDocumentId = Some(documentId)
             override def rawTextMiningData: Option[RawData] = Some(RawData("gzip_xmi", textContent.getBytes))
           }
 
