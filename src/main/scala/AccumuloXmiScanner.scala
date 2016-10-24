@@ -89,6 +89,7 @@ object AccumuloXmiScanner {
       latestFuture = Future {
         val message = sessions(countVal % 16).createTextMessage(new String(entry.getValue.get))
         message.setStringProperty("tracking-nr", entry.getKey.getRow.toString)
+        message.setStringProperty("document-id", entry.getKey.getRow.toString)
         message.setStringProperty("content-type", "gzip-xml")
         prods(countVal % 16).send(message)
       }
