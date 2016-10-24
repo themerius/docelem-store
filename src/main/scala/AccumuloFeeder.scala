@@ -28,14 +28,15 @@ case class AddRawData2Accumulo(model: ModelTransRules)
 // Compaion Object for AccumuloFeeder. The accumulo writere should be shared by all AccumuloFeeder Actors (because they are thread safe and to safe resources...)
 object AccumuloFeeder {
 
-  // val NUM_PARTITIONS = 32
-  //
-  // val configWriter = new BatchWriterConfig
-  // configWriter.setMaxMemory(16L * 1024L * 1024L) // means 16 MB
-  //
-  // val artifactsWriter = AccumuloConnectionFactory.get.createBatchWriter(AccumuloConnectionFactory.ARTIFACTS, configWriter)
-  // val indexWriter = AccumuloConnectionFactory.get.createBatchWriter(AccumuloConnectionFactory.SEMANTIC_INDEX, configWriter)
-  // val topologyIndexWriter = AccumuloConnectionFactory.get.createBatchWriter(AccumuloConnectionFactory.TOPOLOGY_INDEX, configWriter)
+  val NUM_PARTITIONS = 32
+
+  val configWriter = new BatchWriterConfig
+  configWriter.setMaxMemory(1024L * 1024L * 1024L) // means 1024 MB
+  configWriter.setMaxWriteThreads(10)
+
+  val artifactsWriter = AccumuloConnectionFactory.get.createBatchWriter(AccumuloConnectionFactory.ARTIFACTS, configWriter)
+  val indexWriter = AccumuloConnectionFactory.get.createBatchWriter(AccumuloConnectionFactory.SEMANTIC_INDEX, configWriter)
+  val topologyIndexWriter = AccumuloConnectionFactory.get.createBatchWriter(AccumuloConnectionFactory.TOPOLOGY_INDEX, configWriter)
 
 }
 
@@ -45,13 +46,6 @@ class AccumuloFeeder extends Actor {
   import AccumuloFeeder._
 
   val NUM_PARTITIONS = 32
-
-  val configWriter = new BatchWriterConfig
-  configWriter.setMaxMemory(16L * 1024L * 1024L) // means 2 MB
-
-  val artifactsWriter = AccumuloConnectionFactory.get.createBatchWriter(AccumuloConnectionFactory.ARTIFACTS, configWriter)
-  val indexWriter = AccumuloConnectionFactory.get.createBatchWriter(AccumuloConnectionFactory.SEMANTIC_INDEX, configWriter)
-  val topologyIndexWriter = AccumuloConnectionFactory.get.createBatchWriter(AccumuloConnectionFactory.TOPOLOGY_INDEX, configWriter)
 
   val log = Logging(context.system, this)
 

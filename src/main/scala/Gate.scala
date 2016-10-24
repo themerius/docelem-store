@@ -159,13 +159,14 @@ class Gate extends Actor {
   def receive = {
     case Consume(header: Map[String, String], textContent: String) => {
       // unwrap message and route it
-      val event = header.getOrElse("event", "")
-      var contentType = header.getOrElse("content-type", "")
+      var event = header.getOrElse("event", "")
+      val contentType = header.getOrElse("content-type", "")
       val replyTo = header.getOrElse("reply-to", "")
-      var trackingNr = header.getOrElse("tracking-nr", "")
+      val trackingNr = header.getOrElse("tracking-nr", "")
 
-      if (contentType == "gzip_xml") {
-        contentType = "gzip-xml"
+      // TODO: aww that's a hack...
+      if (trackingNr.startsWith("header/")) {
+        event = "onlyStoreXmi"
       }
 
       (contentType, event) match {
@@ -199,6 +200,23 @@ class Gate extends Actor {
               println(co)
               co
             }
+          }
+
+          routerAccumuloFeeder.route(
+            Transform2DocElem(model, textContent.getBytes), sender()
+          )
+
+        }
+
+        case ("gzip-xml", "onlyStoreXmi") => {
+
+          log.info("(Gate) got gzipped XCAS, simply write into Accumulo.")
+
+          val model = new Model with ModelTransRules {
+            def deserialize(m: Array[Byte]) = this
+            def serialize: Array[Byte] = Array[Byte]()
+            override def getDocumentId = Some(trackingNr)
+            override def rawTextMiningData: Option[RawData] = Some(RawData("gzip_xmi", textContent.getBytes))
           }
 
           routerAccumuloFeeder.route(
