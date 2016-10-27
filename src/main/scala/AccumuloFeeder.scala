@@ -7,6 +7,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 import org.apache.accumulo.core.data.Mutation
 import org.apache.accumulo.core.client.BatchWriterConfig
+import org.apache.accumulo.core.client.Durability
 
 import org.apache.hadoop.io.Text
 
@@ -33,6 +34,7 @@ object AccumuloFeeder {
   val configWriter = new BatchWriterConfig
   configWriter.setMaxMemory(1024L * 1024L * 1024L) // means 1024 MB
   configWriter.setMaxWriteThreads(10)
+  configWriter.setDurability(Durability.NONE)
 
   val artifactsWriter = AccumuloConnectionFactory.get.createBatchWriter(AccumuloConnectionFactory.ARTIFACTS, configWriter)
   val indexWriter = AccumuloConnectionFactory.get.createBatchWriter(AccumuloConnectionFactory.SEMANTIC_INDEX, configWriter)
@@ -74,7 +76,8 @@ class AccumuloFeeder extends Actor {
 
       if (model.getDocumentId.nonEmpty) {
 
-        val mutation = new Mutation(model.getDocumentId.get)
+        val docId = model.getDocumentId.get
+        val mutation = new Mutation(docId)
 
         if (model.rawTextMiningData.nonEmpty) {
           val rawData = model.rawTextMiningData.get
@@ -95,7 +98,7 @@ class AccumuloFeeder extends Actor {
         }
 
         artifactsWriter.addMutation(mutation)
-        log.info(s"(artifactsWriter) has written a mutation with raw data.")
+        log.info(s"(artifactsWriter) has written a mutation $docId with raw data.")
 
       }
 
