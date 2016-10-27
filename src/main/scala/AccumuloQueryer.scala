@@ -288,6 +288,10 @@ class AccumuloQueryer extends Actor {
   //println(scanSemanticIndex(Set(SearchTerm(new URI("meddra"), new URI("concept/meddra:cancer_pain")), SearchTerm(new URI("meddra"), new URI("concept/meddra:failure_kidney")))))
   //println(scanSemanticIndex(Set(SearchTerm(new URI("meddra"), new URI("concept/meddra:consumption_coagulopathy")), SearchTerm(new URI("meddra"), new URI("concept/meddra:facial_flushing")))))
 
+  println(scanSemanticIndex(Set(SearchTerm(new URI("NDD_clinical_trial"), new URI("concept/NDD_clinical_trial:Cohort%20study%20design")), SearchTerm(new URI("MeSH_Disease_ns_mapped"), new URI("concept/MeSH_Disease_ns_mapped:melancholia")))))
+
+
+
 
   /*
    * This will only intersect the terms within the same row!

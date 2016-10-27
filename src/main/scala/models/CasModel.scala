@@ -2,6 +2,7 @@ package eu.themerius.docelemstore
 
 import java.io.ByteArrayInputStream
 import java.net.URI
+import java.net.URLEncoder
 
 import org.apache.uima.jcas.cas.FSArray
 import de.fraunhofer.scai.bio.uima.core.util.UIMATypeSystemUtils
@@ -209,17 +210,21 @@ trait Helper {
     uriSentence(sen)
   }
 
-  def dictId(nne: NormalizedNamedEntity) =
-    nne.getConcept.getIdentifierSource.replace(".syn", "").toLowerCase
+  def dictId(nne: NormalizedNamedEntity) = {
+    nne.getConcept.getIdentifierSource.replace(".syn", "")
+  }
 
-  def conceptId(nne: NormalizedNamedEntity) =
+  def conceptId(nne: NormalizedNamedEntity) = {
     nne.getConcept.getIdentifier
+  }
 
-  def prefName(nne: NormalizedNamedEntity) =
-    nne.getConcept.getPrefLabel.getValue.replaceAll("\\s", "_").toLowerCase
+  def prefName(nne: NormalizedNamedEntity) = {
+    nne.getConcept.getPrefLabel.getValue
+  }
 
   def uri(nne: NormalizedNamedEntity) = {
-    s"concept/${dictId(nne)}:${prefName(nne)}"
+    val uri = new URI(null, null, s"concept/${dictId(nne)}:${prefName(nne)}", null)
+    uri.toASCIIString
   }
 
   def uri(fm: FrontMatter) = {
