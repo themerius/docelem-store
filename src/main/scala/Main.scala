@@ -46,6 +46,9 @@ object DocElemStore extends App {
     println(s"Starting gate-$i")
   }
 
+  //AccumuloXmiScanner.setDestination(conf.getString("docelem-store.broker.queue"))
+  //AccumuloXmiScanner.scanXMI("")
+
   def fillExamples(gate: ActorRef) = {
 
     val uri = getClass.getResource("/example.dlogs").toURI
@@ -62,15 +65,9 @@ object DocElemStore extends App {
       val filePath = it.next
       if (filePath.toString.endsWith("dlog")) {
         val reader = Files.newBufferedReader(filePath)
-        val header = Map(
-          "content-type" -> "wal-line",
-          "event" -> ""
-        )
-        var line = reader.readLine
-        while (line != null) {
-          gate ! Consume(header, line)
-          line = reader.readLine
-        }
+        val model = new SimpleWalModel
+        model.reader = reader
+        gate ! CustomModel("wal", model)
       }
     }
 

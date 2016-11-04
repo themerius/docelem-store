@@ -101,13 +101,14 @@ class AccumuloQueryer extends Actor {
       }
       val answerHtml = <ol>{lis}</ol>
 
-      val corpus = Corpus(generateQueryDocElems(queryId, answerHtml.toString, xmlGenerator.format(queryXml)))
+      val corpus = Corpus(generateQueryDocElems(queryId, findings, answerHtml.toString, xmlGenerator.format(queryXml)))
       println(corpus)
 
       context.parent ! Add2Accumulo(corpus, TableType.Artifacts, true)
+      context.parent ! Add2Accumulo(corpus, TableType.Topology, true)
 
       //self ! PrepareReplyOnlyHierarchy(xmlTopo, reply)
-      log.info(s"(Query/SemanticSearch) found ${findings.size} elements and finding are in docelem ${queryId}.")
+      log.info(s"(Query/SemanticSearch) found ${findings.size} elements and findings are in docelem ${queryId}.")
     }
 
     case PrepareReply(corpus, reply) => {
@@ -288,7 +289,7 @@ class AccumuloQueryer extends Actor {
   //println(scanSemanticIndex(Set(SearchTerm(new URI("meddra"), new URI("concept/meddra:cancer_pain")), SearchTerm(new URI("meddra"), new URI("concept/meddra:failure_kidney")))))
   //println(scanSemanticIndex(Set(SearchTerm(new URI("meddra"), new URI("concept/meddra:consumption_coagulopathy")), SearchTerm(new URI("meddra"), new URI("concept/meddra:facial_flushing")))))
 
-  println(scanSemanticIndex(Set(SearchTerm(new URI("NDD_clinical_trial"), new URI("concept/NDD_clinical_trial:Cohort%20study%20design")), SearchTerm(new URI("MeSH_Disease_ns_mapped"), new URI("concept/MeSH_Disease_ns_mapped:melancholia")))))
+  //println(scanSemanticIndex(Set(SearchTerm(new URI("NDD_clinical_trial"), new URI("concept/NDD_clinical_trial:Cohort%20study%20design")), SearchTerm(new URI("MeSH_Disease_ns_mapped"), new URI("concept/MeSH_Disease_ns_mapped:Alzheimer's%20disease")))))
 
 
 
@@ -299,13 +300,24 @@ class AccumuloQueryer extends Actor {
   def scanSemanticIndex(terms: Set[SearchTerm]) = time("semantic index") {
     log.info(s"(scanSemanticIndex) Search Terms: $terms")
 
-    val tableName = AccumuloConnectionFactory.SEMANTIC_INDEX
+    val requestedTable = terms
+      .filter(_.pragmatics.toString.startsWith("semantic_search"))
+      .map(_.semantics.toString)
+      .headOption.getOrElse("0").toInt
+
+    val tableName = requestedTable match {
+      case 100 => AccumuloConnectionFactory.SEMANTIC_INDEX
+      case 200 => AccumuloConnectionFactory.SEMANTIC_ELEM_INDEX
+      case _   => AccumuloConnectionFactory.SEMANTIC_INDEX
+    }
+
     val authorizations = new Authorizations()
     val numQueryThreads = 10
     val bs = AccumuloConnectionFactory.get.createBatchScanner(tableName, authorizations, numQueryThreads)
 
     // Assemble search terms (the will be found in the column familiy)
-    val searchTerms = terms.map(t => new Text( s"${t.pragmatics}!${t.semantics}") ).toArray
+    val termsFiltered = terms.filterNot(_.pragmatics.toString.startsWith("semantic_search"))
+    val searchTerms = termsFiltered.map(t => new Text( s"${t.pragmatics}!${t.semantics}") ).toArray
 
     val priority = 20
     val name = "ii"
@@ -317,13 +329,35 @@ class AccumuloQueryer extends Actor {
     bs.setRanges(Collections.singleton(new Range()))  // scan all partitions
 
     // return the first 100 findings
-    for (entry <- bs.asScala.take(100)) yield {
+    for (entry <- bs.asScala.take(1000)) yield {
       entry.getKey.getColumnQualifier.toString
     }
   }
 
-  def generateQueryDocElems(queryId: String, answerHtml: String, queryXml: String) = {
-    Seq(
+  def generateQueryDocElems(queryId: String, findings: Iterable[String], answerHtml: String, queryXml: String) = {
+
+    var count = 0
+    val date = String.format("%tFT%<tR", new java.util.Date())
+
+    val topos = for (finding <- findings) yield {
+      count = count + 100
+      KnowledgeArtifact(
+        new URI(finding),
+        new URI(queryId + s"@tag:$date"),
+        new URI(s"topo/$queryId"),
+        count.toString.getBytes,
+        Meta(new URI("topo-rank@v1"))
+      )
+    }
+
+    topos.toSeq ++ Seq(
+      KnowledgeArtifact(
+        new URI(queryId),
+        new URI(queryId + s"@tag:$date"),
+        new URI(s"topo/$queryId"),
+        "-1000".getBytes,
+        Meta(new URI("topo-rank@v1"))
+      ),
       KnowledgeArtifact(
         new URI(queryId),
         new URI("_"),

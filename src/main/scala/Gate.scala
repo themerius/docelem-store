@@ -33,6 +33,7 @@ import scala.concurrent.TimeoutException
 import com.typesafe.config.ConfigFactory
 
 case class Consume(header: Map[String, String], message: String)
+case class CustomModel(msg: String, model: ModelTransRules)
 case class Reply(content: String, to: String, trackingNr: String)
 case class Accounting(event: String, query: String, trackingNr: String, unit: String)
 
@@ -278,12 +279,9 @@ class Gate extends Actor {
 
           inMemory ! Transform2DocElem(new SimpleWalLineModel, textContent.getBytes)
 
-          // routerInMemory.route(
-          //   Transform2DocElem(new SimpleWalLineModel, textContent.getBytes), sender()
-          // )
-          // routerAccumuloFeeder.route(
-          //   Transform2DocElem(new SimpleWalLineModel, textContent.getBytes), sender()
-          // )
+          routerAccumuloFeeder.route(
+            Transform2DocElem(new SimpleWalLineModel, textContent.getBytes, true), sender()
+          )
 
         }
 
@@ -328,7 +326,20 @@ class Gate extends Actor {
     }
 
     case add: Add2Accumulo => {
+      log.info(s"(Gate/Add2Accumulo) sending ${add} to Accumulo.")
       routerAccumuloFeeder.route(add, sender())
+    }
+
+    case CustomModel("wal", model) => {
+
+      log.info("(Gate) got WAL")
+
+      inMemory ! Transform2DocElem(model, Array[Byte]())
+
+      routerAccumuloFeeder.route(
+        Transform2DocElem(model, Array[Byte](), true), sender()
+      )
+
     }
 
     case Reply(content, to, trackingNr) => time (s"Gate:Reply($to)") {

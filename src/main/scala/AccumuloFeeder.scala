@@ -18,7 +18,7 @@ import java.net.URI
 
 object TableType extends Enumeration {
   type TableType = Value
-  val Artifacts, Semantic, Topology = Value
+  val Artifacts, Semantic, SemanticElem, Topology = Value
 }
 import TableType._
 
@@ -38,6 +38,7 @@ object AccumuloFeeder {
 
   val artifactsWriter = AccumuloConnectionFactory.get.createBatchWriter(AccumuloConnectionFactory.ARTIFACTS, configWriter)
   val indexWriter = AccumuloConnectionFactory.get.createBatchWriter(AccumuloConnectionFactory.SEMANTIC_INDEX, configWriter)
+  val elemIndexWriter = AccumuloConnectionFactory.get.createBatchWriter(AccumuloConnectionFactory.SEMANTIC_ELEM_INDEX, configWriter)
   val topologyIndexWriter = AccumuloConnectionFactory.get.createBatchWriter(AccumuloConnectionFactory.TOPOLOGY_INDEX, configWriter)
 
 }
@@ -54,18 +55,23 @@ class AccumuloFeeder extends Actor {
   def receive = {
 
     // TODO: extract Transform2DocElem into an dedicated Actor??
-    case Transform2DocElem(model, data) => {
+    case Transform2DocElem(model, data, flush) => {
       // Transform a (domain specific) model into a DocElem-Corpus.
       model.deserialize(data)
       val corpus = model.applyRules
 
       // Transform DocElem-Corpus into Accumulo Datastructures.
-      feedAccumulo( Add2Accumulo(corpus, Artifacts) )
-      feedAccumulo( Add2Accumulo(corpus, Semantic) )
-      feedAccumulo( Add2Accumulo(corpus, Topology) )
+      feedAccumulo( Add2Accumulo(corpus, Artifacts, flush) )
+      feedAccumulo( Add2Accumulo(corpus, Semantic, flush) )
+      feedAccumulo( Add2Accumulo(corpus, SemanticElem, flush) )
+      feedAccumulo( Add2Accumulo(corpus, Topology, flush) )
 
       // Add also the raw data (like XMI) to Accumulo
       feedAccumulo( AddRawData2Accumulo(model) )
+    }
+
+    case add: Add2Accumulo => {
+      feedAccumulo(add)
     }
 
   }
@@ -171,6 +177,34 @@ class AccumuloFeeder extends Actor {
       indexWriter.addMutations(mutations.flatten.toIterable.asJava)
       if (flush) indexWriter.flush
       log.info(s"(indexWriter) has written ${mutations.size} mutations.")
+    }
+
+    case Add2Accumulo(corpus: Corpus, SemanticElem, flush) => {
+      val indexFilter = Set( new URI("annotation@v1") )
+      val filteredCorpus = corpus.artifacts.view.filter {
+        artifact => indexFilter.contains(artifact.meta.specification)
+      }
+
+      val mutations = filteredCorpus.map { artifact =>
+        val layerAndAttribute = s"${artifact.pragmatics}!${artifact.semantics}"
+        val docElemId = artifact.sigmatics.toString
+
+        // Schema:
+        // PARTITON : layer!attribute : docElemId : (None)
+
+        // calculate a partition ID:
+        // every entry with the same 'docelem id'
+        // will be placed into the same partition
+        val partitionId = Math.abs(MurmurHash3.stringHash(docElemId)) % NUM_PARTITIONS
+        val mutation = new Mutation(partitionId.toString)
+        mutation.put(layerAndAttribute, docElemId, "")
+        mutation
+      }
+
+      // send mutations to accumulo
+      elemIndexWriter.addMutations(mutations.toIterable.asJava)
+      if (flush) elemIndexWriter.flush
+      log.info(s"(elemIndexWriter) has written ${mutations.size} mutations.")
     }
 
     case Add2Accumulo(corpus: Corpus, Topology, flush) => {

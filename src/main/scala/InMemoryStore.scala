@@ -32,7 +32,7 @@ class InMemoryStore extends Actor {
   def receive = {
 
     // TODO: extract Transform2DocElem into an dedicated Actor??
-    case Transform2DocElem(model, data) => {
+    case Transform2DocElem(model, data, _) => {
 
       // Transform a (domain specific) model into a DocElem-Corpus.
       model.deserialize(data)

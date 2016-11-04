@@ -55,12 +55,22 @@ object AccumuloConnectionFactory {
 
   // shard_id
   //   :: layer_uri ! attribute_uri
-  //   :: docelem_uri
+  //   :: document_uri
   //   :: nil
   val SEMANTIC_INDEX = conf.getString("docelem-store.storage.accumulo.tables.doc-based-partitioned-index")
   if (!ops.exists(SEMANTIC_INDEX)) {
     ops.create(SEMANTIC_INDEX)
     ops.setProperty(SEMANTIC_INDEX, "table.bloom.enabled", "true")
+  }
+
+  // shard_id
+  //   :: layer_uri ! attribute_uri
+  //   :: docelem_uri
+  //   :: nil
+  val SEMANTIC_ELEM_INDEX = conf.getString("docelem-store.storage.accumulo.tables.elem-based-partitioned-index")
+  if (!ops.exists(SEMANTIC_ELEM_INDEX)) {
+    ops.create(SEMANTIC_ELEM_INDEX)
+    ops.setProperty(SEMANTIC_ELEM_INDEX, "table.bloom.enabled", "true")
   }
 
   // topology_tag_id

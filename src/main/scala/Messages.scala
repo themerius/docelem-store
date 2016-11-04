@@ -3,7 +3,7 @@ package eu.themerius.docelemstore
 import java.net.URI
 import scala.xml.Node
 
-case class Transform2DocElem(model: ModelTransRules, data: Array[Byte])
+case class Transform2DocElem(model: ModelTransRules, data: Array[Byte], flush: Boolean = false)
 
 case class KnowledgeArtifactKey(
   sigmatics: URI,  // indication of a information.
