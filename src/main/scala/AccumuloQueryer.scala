@@ -22,7 +22,8 @@ import java.util.ArrayList
 import java.util.HashSet
 import java.util.Collections
 
-import eu.themerius.docelemstore.utils.Stats.time
+import utils.Stats.time
+import utils.PMIDLexicoder
 
 import QueryTarget.SingleDocElem
 import QueryTarget.Topology
@@ -39,6 +40,7 @@ case class SearchTerm(pragmatics: URI, semantics: URI)
 class AccumuloQueryer extends Actor {
 
   val log = Logging(context.system, this)
+  val lc = new PMIDLexicoder
   val xmlGenerator = new PrettyPrinter(80, 2)
   val version = s"${BuildInfo.name}:${BuildInfo.version}"
 
@@ -142,7 +144,8 @@ class AccumuloQueryer extends Actor {
   def scanSingleDocelem(uri: URI): Corpus = {
     val auths = new Authorizations()
     val scan = AccumuloConnectionFactory.get.createScanner(AccumuloConnectionFactory.ARTIFACTS, auths)
-    scan.setRange(Range.exact(uri.toString))
+    val uriLexicoded = new String(lc.encode(uri.toString))
+    scan.setRange(Range.exact(uriLexicoded))
     //scan.fetchColumn(new Text(typ), new Text(uid))
 
     val artifacts =
@@ -157,7 +160,7 @@ class AccumuloQueryer extends Actor {
         }
 
         KnowledgeArtifact(
-          new URI(key.getRow.toString),
+          new URI(lc.decode(key.getRow.getBytes)),
           new URI(key.getColumnFamily.toString),
           new URI(semantics),
           value.get,
@@ -171,7 +174,8 @@ class AccumuloQueryer extends Actor {
   def getLatestTopologyTag(uri: URI) = time("getLatestTopologyTag") {
     val auths = new Authorizations()
     val scanHead = AccumuloConnectionFactory.get.createScanner(AccumuloConnectionFactory.ARTIFACTS, auths)
-    scanHead.setRange(Range.exact(uri.toString))
+    val uriLexicoded = new String(lc.encode(uri.toString))
+    scanHead.setRange(Range.exact(uriLexicoded))
 
     val result = scanHead.asScala
       .filter(_.getKey.getColumnFamily.toString.startsWith(uri.toString))
@@ -193,15 +197,17 @@ class AccumuloQueryer extends Actor {
   def scanTopology(uri: URI): Corpus = time("scanTopology") {
 
     val auths = new Authorizations()
+    val uriLexicoded = new String(lc.encode(uri.toString))
     val latestTopology = getLatestTopologyTag(uri)
     val involvedIds = scanTopologyIndex(latestTopology)
 
     val ranges = new ArrayList[Range]()
     for (entry <- involvedIds) yield {
+      // TODO: do we need here also lexicode for PMIDs?
       ranges.add(Range.exact(entry))
     }
     // add also the header of the topology
-    ranges.add(Range.exact(uri.toString))
+    ranges.add(Range.exact(uriLexicoded))
 
     val bscan = AccumuloConnectionFactory.get.createBatchScanner(AccumuloConnectionFactory.ARTIFACTS, auths, 10)
     bscan.setRanges(ranges)
@@ -220,7 +226,7 @@ class AccumuloQueryer extends Actor {
         }
 
         KnowledgeArtifact(
-          new URI(key.getRow.toString),
+          new URI(lc.decode(key.getRow.getBytes)),
           new URI(key.getColumnFamily.toString),
           new URI(semantics),
           value.get,
@@ -239,15 +245,17 @@ class AccumuloQueryer extends Actor {
   def scanTopologyOnlyHierarchy(uri: URI): scala.xml.Node = time("scanTopologyOnlyHierarchy") {
 
     val auths = new Authorizations()
+    val uriLexicoded = new String(lc.encode(uri.toString))
     val latestTopology = getLatestTopologyTag(uri)
     val involvedIds = scanTopologyIndex(latestTopology)
 
     val ranges = new ArrayList[Range]()
     for (entry <- involvedIds) yield {
+      // TODO: do we need here also lexicode for PMIDs?
       ranges.add(Range.exact(entry))
     }
     // add also the header of the topology
-    ranges.add(Range.exact(uri.toString))
+    ranges.add(Range.exact(uriLexicoded))
 
     val bscan = AccumuloConnectionFactory.get.createBatchScanner(AccumuloConnectionFactory.ARTIFACTS, auths, 10)
     bscan.setRanges(ranges)
@@ -259,7 +267,7 @@ class AccumuloQueryer extends Actor {
       val key = entry.getKey
       val value = new String(entry.getValue.get)
 
-      val row = entry.getKey.getRow.toString
+      val row = lc.decode(key.getRow.getBytes)
       val qual = key.getColumnQualifier.toString
       val (semantics, spec, fingerprint) = qual.split("\u0000") match {
         case Array(semantics, spec, fingerprint) => (semantics, spec, fingerprint)

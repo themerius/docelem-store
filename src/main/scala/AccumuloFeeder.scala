@@ -16,6 +16,8 @@ import scala.collection.JavaConverters._
 
 import java.net.URI
 
+import utils.PMIDLexicoder
+
 object TableType extends Enumeration {
   type TableType = Value
   val Artifacts, Semantic, SemanticElem, Topology = Value
@@ -51,6 +53,7 @@ class AccumuloFeeder extends Actor {
   val NUM_PARTITIONS = 32
 
   val log = Logging(context.system, this)
+  val lc = new PMIDLexicoder
 
   def receive = {
 
@@ -83,7 +86,7 @@ class AccumuloFeeder extends Actor {
       if (model.getDocumentId.nonEmpty) {
 
         val docId = model.getDocumentId.get
-        val mutation = new Mutation(docId)
+        val mutation = new Mutation(lc.encode(docId))
 
         if (model.rawTextMiningData.nonEmpty) {
           val rawData = model.rawTextMiningData.get
@@ -117,7 +120,7 @@ class AccumuloFeeder extends Actor {
     case Add2Accumulo(corpus: Corpus, Artifacts, flush) => {
       val mutations = corpus.artifacts.map { artifact =>
 
-        val sigmatics = artifact.sigmatics.toString.getBytes
+        val sigmatics = lc.encode(artifact.sigmatics.toString)
         val pragmatics = artifact.pragmatics.toString.getBytes
 
         val semantics = artifact.semantics

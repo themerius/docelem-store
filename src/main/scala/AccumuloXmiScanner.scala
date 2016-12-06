@@ -26,7 +26,8 @@ import java.util.ArrayList
 import java.util.HashSet
 import java.util.Collections
 
-import eu.themerius.docelemstore.utils.Stats.time
+import utils.Stats.time
+import utils.PMIDLexicoder
 
 import com.typesafe.config.ConfigFactory
 
@@ -39,6 +40,8 @@ object AccumuloXmiScanner {
   val brokerPwd = conf.getString("docelem-store.broker.pwd")
   val brokerQueue = conf.getString("docelem-store.broker.queue")
   val brokerBilling = conf.getString("docelem-store.broker.billing")
+
+  val lc = new PMIDLexicoder
 
   // Connect to the broker
   val factory = new StompJmsConnectionFactory
@@ -67,14 +70,16 @@ object AccumuloXmiScanner {
   lazy val prods = sessions.map(_.createProducer(dest))
 
 
-  def scanXMI(prefix: String) = time("scanXMI") {
+  def scanXMI(startKey: String, endKey: String) = time("scanXMI") {
 
-    println(s"Starting scanning $prefix")
-    println(s"Sending to $dest")
+    println(s"Starting scanning from $startKey to $endKey")
+    println(s"Sending messages to $dest")
 
     val auths = new Authorizations()
     val scan = AccumuloConnectionFactory.get.createScanner(AccumuloConnectionFactory.ARTIFACTS, auths)
-    scan.setRange(Range.prefix(prefix))
+    val range = new Range(new String(lc.encode(startKey)),
+                          new String(lc.encode(endKey)))
+    scan.setRange(range)
     scan.fetchColumn(new Text("raw_data"), new Text("textmining\u0000gzip_xmi\u00000"))
 
     val iterator = scan.iterator()
@@ -91,13 +96,14 @@ object AccumuloXmiScanner {
         message.setStringProperty("tracking-nr", entry.getKey.getRow.toString)
         message.setStringProperty("document-id", entry.getKey.getRow.toString)
         message.setStringProperty("content-type", "gzip-xml")
+        message.setStringProperty("event", "onlyStoreXMI")
         prods(countVal % 16).send(message)
       }
 
       countVar = countVar + 1
 
       if (countVar % 10000 == 0) {
-        println(s"Scanned from $prefix the $countVar^th XMI.")
+        println(s"Scanned from range $startKey to $endKey the $countVar^th XMI.")
         // this will throttle the accumulo iterator a litte bit,
         // because the message library (or broker or network?) is slower...
         Await.ready(latestFuture, 1.minutes)
@@ -105,7 +111,7 @@ object AccumuloXmiScanner {
 
     }
 
-    println(s"Scanned from $prefix the LAST (=$countVar^th) XMI.")
+    println(s"Scanned from range $startKey to $endKey the LAST (=$countVar^th) XMI.")
     Await.ready(latestFuture, 5.minutes)
     println("Awaited last message to be SEND.")
     println("Success!")

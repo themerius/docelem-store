@@ -22,12 +22,12 @@ object DocElemStore extends App {
     System.clearProperty("config.file")
   }
 
-  if (args.size == 3) {
+  if (args.size == 4) {
     if(args(0).contains("scan-xmi")) {
-      AccumuloXmiScanner.setDestination(args(2))
-      AccumuloXmiScanner.scanXMI(args(1))
+      AccumuloXmiScanner.setDestination(args(3))
+      AccumuloXmiScanner.scanXMI(args(1), args(2))
     } else {
-      println("wrong arguments. Try something like 'scan-xmi header/PMID jms.queue.XCAS2Lucene'")
+      println("wrong arguments. Try something like 'scan-xmi header/PMID:1 header/PMID:1000000 jms.queue.XCAS2Lucene'")
       System.exit(1)
     }
   }
