@@ -14,6 +14,7 @@ import org.apache.accumulo.core.iterators.user.IntersectingIterator
 
 import scala.collection.JavaConverters._
 import scala.xml.PrettyPrinter
+import scala.util.hashing.MurmurHash3
 
 import java.net.URI
 import java.lang.Long
@@ -334,16 +335,25 @@ class AccumuloQueryer extends Actor {
     }
   }
 
+  def calculateCombinedHash(strs: Iterable[String]) = {
+    val combinedHash = strs.foldLeft(0) { (total, item) =>
+      // use hash from previous item as seed
+      MurmurHash3.stringHash(item, total)
+    }
+    Integer.toHexString(combinedHash)
+  }
+
   def generateQueryDocElems(queryId: String, findings: Iterable[String], answerHtml: String, queryXml: String) = {
 
     var count = 0
-    val date = String.format("%tFT%<tR", new java.util.Date())
+    // make a topology tag based on the findings set
+    val hash = calculateCombinedHash(findings)
 
     val topos = for (finding <- findings) yield {
       count = count + 100
       KnowledgeArtifact(
         new URI(finding),
-        new URI(queryId + s"@tag:$date"),
+        new URI(queryId + s"@tag:$hash"),
         new URI(s"topo/$queryId"),
         count.toString.getBytes,
         Meta(new URI("topo-rank@v1"))
@@ -353,7 +363,7 @@ class AccumuloQueryer extends Actor {
     topos.toSeq ++ Seq(
       KnowledgeArtifact(
         new URI(queryId),
-        new URI(queryId + s"@tag:$date"),
+        new URI(queryId + s"@tag:$hash"),
         new URI(s"topo/$queryId"),
         "-1000".getBytes,
         Meta(new URI("topo-rank@v1"))
