@@ -28,6 +28,7 @@ trait ModelTransRules extends Model {
   def applyRules: Corpus = Corpus(Nil)  // TODO: should get the Model as parameter?
 
   def getDocumentId: Option[String] = None
+  def getDocumentLabel: Option[String] = None
   def rawTextMiningData: Option[RawData] = None
   def rawPlaintextData: Option[RawData] = None
   def rawOriginalData: Option[RawData] = None

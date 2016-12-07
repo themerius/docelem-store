@@ -164,7 +164,8 @@ class Gate extends Actor {
       val contentType = header.getOrElse("content-type", "")
       val replyTo = header.getOrElse("reply-to", "")
       val trackingNr = header.getOrElse("tracking-nr", "")
-      var documentId = header.getOrElse("document-id", "")
+      var documentId = header.get("document-id")
+      var documentLabel = header.get("document-label")
 
       (contentType, event) match {
 
@@ -175,7 +176,8 @@ class Gate extends Actor {
           val model = new Model with ModelTransRules {
             def deserialize(m: Array[Byte]) = this
             def serialize: Array[Byte] = Array[Byte]()
-            override def getDocumentId = Some(documentId)
+            override def getDocumentId = documentId
+            override def getDocumentLabel = documentLabel
             override def rawTextMiningData: Option[RawData] = Some(RawData("gzip_xmi", textContent.getBytes))
           }
 
@@ -202,7 +204,8 @@ class Gate extends Actor {
               // assemble Corpus
               Corpus(headerArtifacts ++ sentenceArtifacts ++ outlineArtifacts ++ topologyArtifacts ++ nneArtifacts)
             }
-            override def getDocumentId = Some(sigmaticUri)
+            override def getDocumentId = Some(headerRawId)
+            override def getDocumentLabel = Some(sigmaticUri)
             override def rawTextMiningData: Option[RawData] = Some(RawData("gzip_xmi", textContent.getBytes))
             override def rawPlaintextData: Option[RawData] = {
               if (getDocumentViewText.nonEmpty && getDocumentViewSpec.nonEmpty) {

@@ -83,10 +83,16 @@ class AccumuloFeeder extends Actor {
 
     case AddRawData2Accumulo(model) => {
 
-      if (model.getDocumentId.nonEmpty) {
+      if (model.getDocumentLabel.nonEmpty) {
 
-        val docId = model.getDocumentId.get
-        val mutation = new Mutation(lc.encode(docId))
+        val docLabel = model.getDocumentLabel.get
+        val mutation = new Mutation(lc.encode(docLabel))
+
+        if (model.getDocumentId.nonEmpty) {
+          val docId = model.getDocumentId.get
+          val columnQualifier = s"header/id\0freetext\0${0}"
+          mutation.put("_".getBytes, columnQualifier.getBytes, docId.getBytes)
+        }
 
         if (model.rawTextMiningData.nonEmpty) {
           val rawData = model.rawTextMiningData.get
@@ -107,7 +113,7 @@ class AccumuloFeeder extends Actor {
         }
 
         artifactsWriter.addMutation(mutation)
-        log.info(s"(artifactsWriter) has written a mutation $docId with raw data.")
+        log.info(s"(artifactsWriter) has written a mutation $docLabel with raw data.")
 
       }
 
