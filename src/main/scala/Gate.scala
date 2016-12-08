@@ -160,12 +160,16 @@ class Gate extends Actor {
   def receive = {
     case Consume(header: Map[String, String], textContent: String) => {
       // unwrap message and route it
-      var event = header.getOrElse("event", "")
+      val event = header.getOrElse("event", "")
       val contentType = header.getOrElse("content-type", "")
       val replyTo = header.getOrElse("reply-to", "")
       val trackingNr = header.getOrElse("tracking-nr", "")
-      var documentId = header.get("document-id")
+      val documentId = header.get("document-id")
       var documentLabel = header.get("document-label")
+
+      if (documentLabel.nonEmpty && !documentLabel.get.startsWith("header/")) {
+        documentLabel = Some(s"header/${documentLabel.get}")
+      }
 
       (contentType, event) match {
 
