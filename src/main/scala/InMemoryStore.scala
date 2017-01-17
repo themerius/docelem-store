@@ -26,8 +26,8 @@ class InMemoryStore extends Actor {
 
   var latestVersion = Map.empty[KnowledgeArtifactKey, KnowledgeArtifact]
 
-  val now = String.format("%tFT%<tRZ", java.util.Calendar.getInstance())
-  val persistentWAL = new java.io.FileOutputStream(s"session-${now}.dlog", true)
+  //val now = String.format("%tFT%<tRZ", java.util.Calendar.getInstance())
+  //val persistentWAL = new java.io.FileOutputStream(s"session-${now}.dlog", true)
 
   def receive = {
 
@@ -172,11 +172,11 @@ class InMemoryStore extends Actor {
   }
 
   def writePersitentWAL(artifact: KnowledgeArtifact) = {
-    val head = s"${artifact.meta.timestamp}\t${artifact.sigmatics}\t${artifact.pragmatics}\t${artifact.semantics}\t${artifact.meta.specification}\t"
-
-    persistentWAL.write(head.getBytes)
-    persistentWAL.write(new String(artifact.model).replaceAll("\n", "\\\\n").getBytes)
-    persistentWAL.write("\n".getBytes)
+    // val head = s"${artifact.meta.timestamp}\t${artifact.sigmatics}\t${artifact.pragmatics}\t${artifact.semantics}\t${artifact.meta.specification}\t"
+    //
+    // persistentWAL.write(head.getBytes)
+    // persistentWAL.write(new String(artifact.model).replaceAll("\n", "\\\\n").getBytes)
+    // persistentWAL.write("\n".getBytes)
   }
 
 }
