@@ -171,27 +171,27 @@ class Gate extends Actor {
         documentLabel = Some(s"header/${documentLabel.get}")
       }
 
-      (contentType, event) match {
+      def onlyStoreXMI = {
 
-        case ("gzip-xml", "onlyStoreXMI") => {
+        log.info("(Gate) got gzipped XCAS, simply write into Accumulo.")
 
-          log.info("(Gate) got gzipped XCAS, simply write into Accumulo.")
-
-          val model = new Model with ModelTransRules {
-            def deserialize(m: Array[Byte]) = this
-            def serialize: Array[Byte] = Array[Byte]()
-            override def getDocumentId = documentId
-            override def getDocumentLabel = documentLabel
-            override def rawTextMiningData: Option[RawData] = Some(RawData("gzip_xmi", textContent.getBytes))
-          }
-
-          routerAccumuloFeeder.route(
-            Transform2DocElem(model, textContent.getBytes), sender()
-          )
-
+        val model = new Model with ModelTransRules {
+          def deserialize(m: Array[Byte]) = this
+          def serialize: Array[Byte] = Array[Byte]()
+          override def getDocumentId = documentId
+          override def getDocumentLabel = documentLabel
+          override def rawTextMiningData: Option[RawData] = Some(RawData("gzip_xmi", textContent.getBytes))
         }
 
-        case ("gzip-xml", _) => {
+        routerAccumuloFeeder.route(
+          Transform2DocElem(model, textContent.getBytes), sender()
+        )
+
+      }
+
+      (contentType, event) match {
+
+        case ("gzip-xml", "doAnalysis") => {
 
           log.info("(Gate) got gzipped XCAS, configure for document extraction only")
 
@@ -234,6 +234,14 @@ class Gate extends Actor {
             Transform2DocElem(model, textContent.getBytes), sender()
           )
 
+        }
+
+        case ("gzip-xml", "onlyStoreXMI") => {
+          onlyStoreXMI
+        }
+
+        case ("gzip-xml", _) => {
+          onlyStoreXMI
         }
 
         case ("wal-line", "") => {
