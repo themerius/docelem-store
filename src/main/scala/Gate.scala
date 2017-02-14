@@ -244,6 +244,27 @@ class Gate extends Actor {
           onlyStoreXMI
         }
 
+        case (_, "SDA") => {
+
+          val si = new URI(header.get("sigmatics").get)
+          val pr = new URI(header.get("pragmatics").get)
+          val se = new URI(header.get("semantics").get)
+          val sy = new URI(header.get("syntax").get)
+          val fp = header.get("fingerprint").get
+
+          log.info(s"(Gate) SDA: $si,$pr,$se")
+
+          val corpus = Corpus(Seq(KnowledgeArtifact(si, pr, se, textContent.getBytes, Meta(sy, Integer.parseInt(fp, 16)))))
+
+          routerAccumuloFeeder.route(
+            Add2Accumulo(corpus, TableType.Artifacts), sender()
+          )
+          routerAccumuloFeeder.route(
+            Add2Accumulo(corpus, TableType.SemanticElem), sender()
+          )
+
+        }
+
         case ("wal-line", "") => {
 
           log.info("(Gate) got WAL line")
