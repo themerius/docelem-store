@@ -254,13 +254,16 @@ class Gate extends Actor {
 
           log.info(s"(Gate) SDA: $si,$pr,$se")
 
-          val corpus = Corpus(Seq(KnowledgeArtifact(si, pr, se, textContent.getBytes, Meta(sy, Integer.parseInt(fp, 16)))))
+          val corpus = Corpus(Seq(KnowledgeArtifact(si, pr, se, textContent.getBytes, Meta(sy, Integer.parseUnsignedInt(fp, 16)))))
 
           routerAccumuloFeeder.route(
             Add2Accumulo(corpus, TableType.Artifacts), sender()
           )
           routerAccumuloFeeder.route(
             Add2Accumulo(corpus, TableType.SemanticElem), sender()
+          )
+          routerAccumuloFeeder.route(
+            Add2Accumulo(corpus, TableType.Topology), sender()
           )
 
         }
@@ -283,7 +286,7 @@ class Gate extends Actor {
           val data = textContent.getBytes("UTF-8")
           val reply = Reply("", replyTo, trackingNr)
           accumuloQuery ! BuildQuery(builder, data, reply)
-          inMemory ! BuildQuery(builder, data, reply)
+          //inMemory ! BuildQuery(builder, data, reply)
         }
         case ("xml", "query-topology") => {
           log.info("(Gate) got html and configure for query topology")
@@ -291,7 +294,7 @@ class Gate extends Actor {
           val data = textContent.getBytes("UTF-8")
           val reply = Reply("", replyTo, trackingNr)
           accumuloQuery ! BuildQuery(builder, data, reply)
-          inMemory ! BuildQuery(builder, data, reply)
+          //inMemory ! BuildQuery(builder, data, reply)
         }
         case ("xml", "query-topology-only-hierarchy") => {
           log.info("(Gate) got html and configure for query topology only hierarchy")
@@ -299,7 +302,7 @@ class Gate extends Actor {
           val data = textContent.getBytes("UTF-8")
           val reply = Reply("", replyTo, trackingNr)
           accumuloQuery ! BuildQuery(builder, data, reply)
-          inMemory ! BuildQuery(builder, data, reply)
+          //inMemory ! BuildQuery(builder, data, reply)
         }
         case ("xml", "semantic-search") => {
           log.info("(Gate) got html and configure for query semantic search")
@@ -307,7 +310,7 @@ class Gate extends Actor {
           val data = textContent.getBytes("UTF-8")
           val reply = Reply("", replyTo, trackingNr)
           accumuloQuery ! BuildQuery(builder, data, reply)
-          inMemory ! BuildQuery(builder, data, reply)
+          //inMemory ! BuildQuery(builder, data, reply)
         }
         case (x, y) => {
           latestErrorLog = s"No rules for ($x, $y)."
@@ -354,7 +357,7 @@ class Gate extends Actor {
       accounting.send(message)
     }
 
-    case unknown => println("Gate got a unknown message: " + unknown)
+    case unknown => log.error("Gate got a unknown message: " + unknown)
   }
 
 }

@@ -22,6 +22,12 @@ object DocElemStore extends App {
     System.clearProperty("config.file")
   }
 
+  //AccumuloDocElemStatistics.collectStatistics
+  //AccumuloDocElemStatistics.collectDocElemStatistics
+  //AccumuloDocElemStatistics.collectGeneNerTagStatistics("PMID")
+  //AccumuloDocElemStatistics.famousDocElems
+  //System.exit(0)
+
   if (args.size == 4) {
     if(args(0).contains("scan-xmi")) {
       AccumuloXmiScanner.setDestination(args(3))
