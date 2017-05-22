@@ -50,7 +50,7 @@ object AccumuloConnectionFactory {
   if (!ops.exists(ARTIFACTS)) {
     ops.create(ARTIFACTS)
     ops.setProperty(ARTIFACTS, "table.bloom.enabled", "true")
-    ops.setLocalityGroups(ARTIFACTS, Map("raws" -> Set(new Text("raw_data")).asJava).asJava)
+    ops.setLocalityGroups(ARTIFACTS, Map("raw_data" -> Set(new Text("raw_data")).asJava).asJava)
   }
 
   // shard_id
